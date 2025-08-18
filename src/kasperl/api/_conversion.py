@@ -192,7 +192,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     return reader, filter_, writer, session
 
 
-def perform_conversion(env_var: str, args: List[str], prog: str, description: str,
+def perform_conversion(env_var: Optional[str], args: List[str], prog: str, description: str,
                        readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                        require_reader: bool = True, require_writer: bool = True, generate_plugin_usage=None):
     """
