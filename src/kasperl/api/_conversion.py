@@ -1,0 +1,242 @@
+import argparse
+import logging
+import os.path
+import sys
+import traceback
+from typing import List, Tuple, Optional, Dict
+
+from wai.logging import set_logging_level, add_logging_level, LOGGING_LEVELS, init_logging
+
+from kasperl.api import Session
+from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility
+from seppl.io import Reader, Filter, MultiFilter, Writer, execute
+from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
+
+DEFAULT_UPDATE_INTERVAL = 1000
+
+
+def print_conversion_usage(prog: str, description: str,
+                           readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
+                           aliases: List[str] = None, plugin_details: bool = False, generate_plugin_usage=None):
+    """
+    Prints the program usage to stdout.
+    Ensure global options are in sync with parser in parse_args method below.
+
+    :param prog: the conversion executable
+    :type prog: str
+    :param description: the description of the executable
+    :type description: str
+    :param readers: the available readers
+    :type readers: dict
+    :param filters: the available filters
+    :type filters: dict
+    :param writers: the available writers
+    :type writers: dict
+    :param aliases: the list of aliases in the registry
+    :type aliases: list
+    :param plugin_details: whether to output the plugin details as well
+    :type plugin_details: bool
+    :param generate_plugin_usage: the method for generating the plugin usage
+    """
+    cmd = "usage: " + prog
+    prefix = " " * (len(cmd) + 1)
+    logging_levels = ",".join(LOGGING_LEVELS)
+    print(cmd + " [-h|--help|--help-all|--help-plugin NAME]")
+    print(prefix + "[-u INTERVAL] [-b|--force_batch] [--placeholders FILE] [--dump_pipeline FILE]")
+    print(prefix + "[-l {%s}]" % logging_levels)
+    print(prefix + "reader")
+    print(prefix + "[filter [filter [...]]]")
+    print(prefix + "[writer]")
+    print()
+    print(description)
+    print()
+    print("readers (%d):\n" % len(readers) + enumerate_plugins(readers.keys(), aliases=aliases, prefix="   "))
+    print("filters (%d):\n" % len(filters) + enumerate_plugins(filters.keys(), aliases=aliases, prefix="   "))
+    print("writers (%d):\n" % len(writers) + enumerate_plugins(writers.keys(), aliases=aliases, prefix="   "))
+    print()
+    print("optional arguments:")
+    print("  -h, --help            show basic help message and exit")
+    print("  --help-all            show basic help message plus help on all plugins and exit")
+    print("  --help-plugin NAME    show help message for plugin NAME and exit")
+    print("  -u INTERVAL, --update_interval INTERVAL")
+    print("                        outputs the progress every INTERVAL records (default: %d)" % DEFAULT_UPDATE_INTERVAL)
+    print("  -l {%s}, --logging_level {%s}" % (logging_levels, logging_levels))
+    print("                        the logging level to use (default: WARN)")
+    print("  -b, --force_batch     processes the data in batches")
+    print("  --placeholders FILE")
+    print("                        The file with custom placeholders to load (format: key=value).")
+    print("  --dump_pipeline FILE")
+    print("                        The file to dump the pipeline command in.")
+    print()
+    if plugin_details and (generate_plugin_usage is not None):
+        all_plugins = dict()
+        all_plugins.update(readers)
+        all_plugins.update(filters)
+        all_plugins.update(writers)
+        for plugin in sorted(all_plugins.keys()):
+            generate_plugin_usage(plugin)
+
+
+def parse_conversion_args(args: List[str], prog: str, description: str,
+                          readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
+                          require_reader: bool = True, require_writer: bool = True, generate_plugin_usage=None) -> Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]:
+    """
+    Parses the arguments for the conversion tool.
+
+    :param args: the arguments to parse
+    :type args: list
+    :param prog: the conversion executable
+    :type prog: str
+    :param description: the description of the executable
+    :type description: str
+    :param readers: the available readers
+    :type readers: dict
+    :param filters: the available filters
+    :type filters: dict
+    :param writers: the available writers
+    :type writers: dict
+    :param require_reader: whether a reader is required
+    :type require_reader: bool
+    :param require_writer: whether a writer is required
+    :type require_writer: bool
+    :param generate_plugin_usage: the method for generating the plugin usage
+    :return: tuple of (reader, filter, writer, session), the filter can be None
+    :rtype: tuple
+    """
+    partial = False
+    all_plugins = dict()
+    all_plugins.update(readers)
+    all_plugins.update(filters)
+    all_plugins.update(writers)
+    handlers = list(all_plugins.keys())
+
+    # help requested?
+    help_requested, plugin_details, plugin_name = is_help_requested(args, handlers=handlers, partial=partial)
+    if help_requested:
+        if (plugin_name is not None) and (generate_plugin_usage is not None):
+            generate_plugin_usage(plugin_name)
+        else:
+            print_conversion_usage(prog, description, readers, filters, writers,
+                                   generate_plugin_usage=generate_plugin_usage,
+                                   plugin_details=plugin_details)
+        sys.exit(0)
+
+    parsed = split_args(args, handlers, partial=partial)
+    plugins = args_to_objects(parsed, all_plugins, allow_global_options=True)
+    reader = None
+    writer = None
+    filters = []
+    for plugin in plugins:
+        if isinstance(plugin, Reader):
+            if reader is None:
+                reader = plugin
+                continue
+            else:
+                raise Exception("Only one reader can be defined!")
+
+        if isinstance(plugin, Filter):
+            filters.append(plugin)
+            continue
+
+        if isinstance(plugin, Writer):
+            if writer is None:
+                writer = plugin
+                continue
+            else:
+                raise Exception("Only one writer can be defined!")
+
+        raise Exception("Unhandled plugin type: %s" % str(type(plugin)))
+
+    # checks whether valid pipeline
+    if (reader is None) and require_reader:
+        raise Exception("No reader defined!")
+    if (writer is None) and require_writer:
+        raise Exception("No writer defined!")
+    if len(filters) == 0:
+        filter_ = None
+    elif len(filters) == 1:
+        filter_ = filters[0]
+    else:
+        filter_ = MultiFilter(filters=filters)
+
+    # check compatibility
+    if writer is not None:
+        if filter_ is not None:
+            check_compatibility([reader, filter_, writer])
+        else:
+            check_compatibility([reader, writer])
+
+    # global options?
+    # see print_usage() method above
+    parser = argparse.ArgumentParser()
+    add_logging_level(parser)
+    parser.add_argument("-u", "--update_interval", type=int, default=DEFAULT_UPDATE_INTERVAL)
+    parser.add_argument("-b", "--force_batch", action="store_true")
+    parser.add_argument("--placeholders")
+    parser.add_argument("--dump_pipeline")
+    session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []),
+                      logger=logging.getLogger(prog))
+    set_logging_level(session.logger, session.options.logging_level)
+    if session.options.placeholders is not None:
+        if not os.path.exists(session.options.placeholders):
+            session.logger.error("Placeholder file not found: %s" % session.options.placeholders)
+        else:
+            session.logger.info("Loading custom placeholders from: %s" % session.options.placeholders)
+            load_user_defined_placeholders(session.options.placeholders)
+    if session.options.dump_pipeline is not None:
+        session.logger.info("Dumping pipeline command in: %s" % session.options.dump_pipeline)
+        with open(expand_placeholders(session.options.dump_pipeline), "w") as fp:
+            fp.write(prog + "\n")
+            fp.write("\n".join(args))
+
+    return reader, filter_, writer, session
+
+
+def perform_conversion(env_var: str, args: List[str], prog: str, description: str,
+                       readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
+                       require_reader: bool = True, require_writer: bool = True, generate_plugin_usage=None):
+    """
+    Parses the command-line arguments and performs the conversion.
+
+    :param env_var: the environment variable to obtain the logging level from, can be None
+    :type env_var: str
+    :param args: the commandline arguments, uses sys.argv if not supplied
+    :type args: list
+    :param args: the arguments to parse
+    :type args: list
+    :param prog: the conversion executable
+    :type prog: str
+    :param description: the description of the executable
+    :type description: str
+    :param readers: the available readers
+    :type readers: dict
+    :param filters: the available filters
+    :type filters: dict
+    :param writers: the available writers
+    :type writers: dict
+    :param require_reader: whether a reader is required
+    :type require_reader: bool
+    :param require_writer: whether a writer is required
+    :type require_writer: bool
+    :param generate_plugin_usage: the method for generating the plugin usage
+    :return: tuple of (reader, filter, writer, session), the filter can be None
+    :rtype: tuple
+    """
+    init_logging(env_var=env_var)
+    _args = sys.argv[1:] if (args is None) else args
+    try:
+        reader, filter_, writer, session = parse_conversion_args(
+            _args, prog, description,
+            readers, filters, writers,
+            require_reader=require_reader, require_writer=require_writer,
+            generate_plugin_usage=generate_plugin_usage)
+        session.logger.info("options: %s" % str(_args))
+        execute(reader, filter_, writer, session)
+    except Exception:
+        traceback.print_exc()
+        print("options: %s" % str(_args), file=sys.stderr)
+        print_conversion_usage(
+            prog, description,
+            readers, filters, writers,
+            generate_plugin_usage=generate_plugin_usage)
+        sys.exit(1)
