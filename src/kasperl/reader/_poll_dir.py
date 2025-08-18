@@ -1,11 +1,12 @@
+import abc
 import argparse
 import glob
 import os
 from time import sleep
-from typing import List, Iterable
+from typing import List, Iterable, Dict
 
 from seppl.placeholders import PlaceholderSupporter, placeholder_list
-from seppl import Initializable, init_initializable, AnyData
+from seppl import Initializable, init_initializable, AnyData, Plugin
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader, parse_reader
@@ -14,7 +15,7 @@ GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
 
 
-class PollDir(Reader, PlaceholderSupporter):
+class PollDir(Reader, PlaceholderSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, poll_wait: float = None, process_wait: float = None,
                  delete_input: bool = False, extensions: List[str] = None,
@@ -146,6 +147,15 @@ class PollDir(Reader, PlaceholderSupporter):
         if not os.path.isdir(path):
             raise Exception("%s directory does not point to a directory: %s" % (name.capitalize(), path))
 
+    def _available_readers(self) -> Dict[str, Plugin]:
+        """
+        Return the available readers.
+
+        :return: the reader plugins
+        :rtype: dict
+        """
+        raise NotImplementedError()
+
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
@@ -173,7 +183,7 @@ class PollDir(Reader, PlaceholderSupporter):
         self._check_dir(self._actual_dir_out, "output")
 
         # configure base reader
-        self._base_reader = parse_reader(self.base_reader)
+        self._base_reader = parse_reader(self.base_reader, self._available_readers())
         if not hasattr(self._base_reader, "source"):
             raise Exception("Reader does not have 'source' attribute: %s" % str(type(self._base_reader)))
         self._base_reader.session = self.session
