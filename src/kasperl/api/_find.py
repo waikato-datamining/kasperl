@@ -8,19 +8,23 @@ from wai.logging import add_logging_level, init_logging, set_logging_level
 
 from seppl.io import Splitter
 
+DESCRIPTION = "Tool for locating files in directories that match certain patterns and store them in files."
 
-def find_files_parser(prog: str, description: str) -> argparse.ArgumentParser:
+
+def find_files_parser(prog: str, description: Optional[str]) -> argparse.ArgumentParser:
     """
     Creates the parser for the find files tool.
 
     :param prog: the name of the executable
     :type prog: str
-    :param description: the description of the tool
+    :param description: the description of the tool, uses default if None
     :type description: str
     :return: the parser instance
     :rtype: argparse.ArgumentParser
     """
-    result = argparse.ArgumentParser(description=description, prog=prog, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    if description is None:
+        description = DESCRIPTION
+    result = argparse.ArgumentParser(prog=prog, description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     result.add_argument("-i", "--input", metavar="DIR", help="The dir(s) to scan for files.", default=None, type=str, required=True, nargs="+")
     result.add_argument("-r", "--recursive", action="store_true", help="Whether to search the directories recursively", required=False)
     result.add_argument("-o", "--output", metavar="FILE", help="The file to store the located file names in", type=str, required=True)
@@ -151,7 +155,7 @@ def find_files(paths: List[str], output: str, recursive=False,
                 fp.write("\n")
 
 
-def perform_find_files(env_var: Optional[str], args: List[str], prog: str, description: str, logger: logging.Logger):
+def perform_find_files(env_var: Optional[str], args: List[str], prog: str, description: Optional[str], logger: logging.Logger):
     """
     The main method for parsing command-line arguments.
 
