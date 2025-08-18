@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import re
-from typing import List
+from typing import List, Optional
 
 from wai.logging import add_logging_level, init_logging, set_logging_level
 
@@ -151,7 +151,7 @@ def find_files(paths: List[str], output: str, recursive=False,
                 fp.write("\n")
 
 
-def perform_find_files(env_var: str, args: List[str], prog: str, description: str, logger: logging.Logger):
+def perform_find_files(env_var: Optional[str], args: List[str], prog: str, description: str, logger: logging.Logger):
     """
     The main method for parsing command-line arguments.
 
