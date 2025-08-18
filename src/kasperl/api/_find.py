@@ -4,19 +4,19 @@ import os
 import re
 from typing import List
 
-from wai.logging import add_logging_level
+from wai.logging import add_logging_level, init_logging, set_logging_level
 
 from seppl.io import Splitter
 
 
-def find_files_parser(description: str, prog: str) -> argparse.ArgumentParser:
+def find_files_parser(prog: str, description: str) -> argparse.ArgumentParser:
     """
     Creates the parser for the find files tool.
 
-    :param description: the description of the tool
-    :type description: str
     :param prog: the name of the executable
     :type prog: str
+    :param description: the description of the tool
+    :type description: str
     :return: the parser instance
     :rtype: argparse.ArgumentParser
     """
@@ -149,3 +149,28 @@ def find_files(paths: List[str], output: str, recursive=False,
             for f in all_files:
                 fp.write(f)
                 fp.write("\n")
+
+
+def perform_find_files(env_var: str, args: List[str], prog: str, description: str, logger: logging.Logger):
+    """
+    The main method for parsing command-line arguments.
+
+    :param env_var: the environment variable to obtain the logging level from, can be None
+    :type env_var: str
+    :param args: the commandline arguments, uses sys.argv if not supplied
+    :type args: list
+    :param prog: the name of the executable
+    :type prog: str
+    :param description: the description of the tool
+    :type description: str
+    :param logger: the logger instance to configure and use
+    :type logger: logging.Logger
+    """
+    init_logging(env_var=env_var)
+    parser = find_files_parser(prog, description)
+    parsed = parser.parse_args(args=args)
+    set_logging_level(logger, parsed.logging_level)
+    find_files(parsed.input, parsed.output, recursive=parsed.recursive,
+               match=parsed.match, not_match=parsed.not_match,
+               split_ratios=parsed.split_ratios, split_names=parsed.split_names,
+               split_name_separator=parsed.split_name_separator, logger=logger)
