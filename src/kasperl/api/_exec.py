@@ -86,7 +86,7 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     init_logging(env_var=env_var)
     if description is None:
         description = DESCRIPTION
-    description = description + " Available generators: " + ", ".join(generators)
+    description += " Available generators: " + ", ".join(generators)
     parser = argparse.ArgumentParser(
         prog=prog, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
