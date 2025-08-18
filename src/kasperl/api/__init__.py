@@ -4,6 +4,7 @@ from ._comparison import compare_values, COMPARISONS, COMPARISON_HELP, COMPARISO
 from ._session import Session
 from ._data import make_list, flatten_list, NameSupporter, SourceSupporter, AnnotationHandler
 from ._generator import Generator, SingleVariableGenerator
+from ._exec import execute_pipeline, perform_pipeline_execution
 from ._find import find_files_parser, find_files, perform_find_files
 from ._reader import Reader, parse_reader
 from ._filter import Filter, parse_filter
