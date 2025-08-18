@@ -1,8 +1,9 @@
 import abc
 import argparse
+import logging
 from typing import List, Dict, Optional
 
-from wai.logging import LOGGING_WARNING
+from wai.logging import LOGGING_WARNING, init_logging, add_logging_level, set_logging_level
 from seppl import Plugin, PluginWithLogging, Initializable, split_cmdline, split_args, args_to_objects
 
 
@@ -147,3 +148,51 @@ class SingleVariableGenerator(Generator):
             result = "No variable name provided!"
 
         return result
+
+
+def test_generator(generator: str, generators: Dict[str, Plugin]):
+    """
+    Parses/executes the generator and then outputs the generated variables.
+
+    :param generator: the generator command-line to use for generating variable values
+    :type generator: str
+    :param generators: the available generators
+    :type generators: dict
+    """
+    # parse generator
+    generator_obj = Generator.parse_generator(generator, generators)
+
+    # apply generator to pipeline template and execute it
+    vars_list = generator_obj.generate()
+    for vars_ in vars_list:
+        print(vars_)
+
+
+def perform_generator_test(env_var: Optional[str], args: List[str], prog: str, description: Optional[str],
+                           generators: Dict[str, Plugin], logger: logging.Logger):
+    """
+    The main method for parsing command-line arguments.
+
+    :param env_var: the environment variable for the logging level, can be None
+    :type env_var: str
+    :param args: the commandline arguments, uses sys.argv if not supplied
+    :type args: list
+    :param prog: the name of the executable
+    :type prog: str
+    :param description: the description for the executable, uses default if None; list of available generators gets automatically appended
+    :type description: str
+    :param generators: the available generators
+    :type generators: dict
+    :param logger: the logger instance to use
+    :type logger: logging.Logger
+    """
+    init_logging(env_var=env_var)
+    if description is None:
+        description = "Tool for testing generators by outputting the generated variables and their associated values."
+    description += " Available generators: " + ", ".join(sorted(list(generators.keys())))
+    parser = argparse.ArgumentParser(prog=prog, description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-g", "--generator", help="The generator plugin to use.", default=None, type=str, required=True)
+    add_logging_level(parser)
+    parsed = parser.parse_args(args=args)
+    set_logging_level(logger, parsed.logging_level)
+    test_generator(parsed.generator, generators)
