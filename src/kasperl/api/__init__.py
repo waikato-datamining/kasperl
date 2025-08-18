@@ -2,7 +2,7 @@ from ._comparison import compare_values, COMPARISONS, COMPARISON_HELP, COMPARISO
     COMPARISON_LESSTHAN, COMPARISON_LESSOREQUAL, COMPARISON_EQUAL, COMPARISON_NOTEQUAL, COMPARISON_GREATEROREQUAL, \
     COMPARISON_GREATERTHAN, COMPARISON_CONTAINS, COMPARISON_MATCHES
 from ._session import Session
-from ._data import make_list, flatten_list
+from ._data import make_list, flatten_list, NameSupporter, SourceSupporter, AnnotationHandler
 from ._generator import Generator, SingleVariableGenerator
 from ._find import find_files
 from ._reader import Reader, parse_reader
