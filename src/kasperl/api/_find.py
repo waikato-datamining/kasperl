@@ -1,9 +1,36 @@
+import argparse
 import logging
 import os
 import re
 from typing import List
 
+from wai.logging import add_logging_level
+
 from seppl.io import Splitter
+
+
+def find_files_parser(description: str, prog: str) -> argparse.ArgumentParser:
+    """
+    Creates the parser for the find files tool.
+
+    :param description: the description of the tool
+    :type description: str
+    :param prog: the name of the executable
+    :type prog: str
+    :return: the parser instance
+    :rtype: argparse.ArgumentParser
+    """
+    result = argparse.ArgumentParser(description=description, prog=prog, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    result.add_argument("-i", "--input", metavar="DIR", help="The dir(s) to scan for files.", default=None, type=str, required=True, nargs="+")
+    result.add_argument("-r", "--recursive", action="store_true", help="Whether to search the directories recursively", required=False)
+    result.add_argument("-o", "--output", metavar="FILE", help="The file to store the located file names in", type=str, required=True)
+    result.add_argument("-m", "--match", metavar="REGEXP", help="The regular expression that the (full) file names must match to be included", default=None, type=str, required=False, nargs="*")
+    result.add_argument("-n", "--not-match", metavar="REGEXP", help="The regular expression that the (full) file names must match to be excluded", default=None, type=str, required=False, nargs="*")
+    result.add_argument("--split_ratios", type=int, default=None, help="The split ratios to use for generating the splits (int; must sum up to 100)", nargs="*")
+    result.add_argument("--split_names", type=str, default=None, help="The split names to use as filename suffixes for the generated splits (before .ext)", nargs="*")
+    result.add_argument("--split_name_separator", type=str, default="-", help="The separator to use between file name and split name", required=False)
+    add_logging_level(result)
+    return result
 
 
 def _find(path: str, recursive: bool, match: List[str], not_match: List[str], files: List[str],
