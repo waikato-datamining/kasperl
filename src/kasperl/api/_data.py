@@ -1,15 +1,18 @@
+import types
 from typing import List, Any
 
 
 def make_list(data, cls=list) -> List:
     """
-    Wraps the data item in a list if not already a list.
+    Wraps the data item in a list if not already a list. Generators get turned into lists automatically.
 
     :param data: the data item to wrap if necessary
     :param cls: the type of class to check for
     :return: the list object
     :rtype: list
     """
+    if isinstance(data, types.GeneratorType):
+        return list(data)
     if not isinstance(data, cls):
         data = [data]
     return data
