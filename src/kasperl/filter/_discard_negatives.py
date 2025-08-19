@@ -9,7 +9,7 @@ from kasperl.api import make_list, flatten_list, AnnotationHandler
 
 class DiscardNegatives(Filter):
     """
-    Discards negative images, i.e., ones without annotations.
+    Discards negative records, i.e., ones without annotations.
     """
 
     def __init__(self, logger_name: str = None, logging_level: str = LOGGING_WARNING):
@@ -41,7 +41,7 @@ class DiscardNegatives(Filter):
         :return: the description
         :rtype: str
         """
-        return "Discards negative images, i.e., ones without annotations."
+        return "Discards negative records, i.e., ones without annotations."
 
     def accepts(self) -> List:
         """
@@ -89,7 +89,7 @@ class DiscardNegatives(Filter):
                 result.append(item)
             else:
                 self.discarded += 1
-                self.logger().info("Discarding image: %s" % str(item))
+                self.logger().info("Discarding: %s" % str(item))
 
         return flatten_list(result)
 
