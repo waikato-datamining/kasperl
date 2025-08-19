@@ -3,6 +3,7 @@ PyPi
 
 Preparation:
 
+* ensure that all readers/filters/writers and tool methods are listed in `README.md`
 * increment version in `setup.py`
 * add new changelog section in `CHANGES.rst`
 * align `DESCRIPTION.rst` with `README.md`  
