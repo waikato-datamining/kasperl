@@ -1,10 +1,11 @@
+import abc
 import argparse
 from typing import Dict
 import seppl.io
 from seppl import Initializable, Plugin
 
 
-class Reader(seppl.io.Reader, Initializable):
+class Reader(seppl.io.Reader, Initializable, abc.ABC):
     """
     Ancestor for dataset readers.
     """
