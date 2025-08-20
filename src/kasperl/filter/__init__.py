@@ -12,5 +12,7 @@ from ._rename import Rename, RENAME_PLACEHOLDERS, RENAME_PH_NAME, RENAME_PH_COUN
 from ._sample import Sample
 from ._set_placeholder import SetPlaceholder
 from ._split_records import SplitRecords
+from ._storage import StorageUpdater
 from ._sub_process import SubProcess
 from ._tee import Tee
+from ._trigger import Trigger
