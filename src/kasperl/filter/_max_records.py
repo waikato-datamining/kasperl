@@ -105,6 +105,7 @@ class MaxRecords(Filter):
             if (self.max_records > 0) and (self._counter >= self.max_records):
                 if self._counter == self.max_records:
                     self.logger().info("Maximum # of records reached: %d" % self.max_records)
+                    self.session.stopped = True
                 item = None
 
             self._counter += 1
