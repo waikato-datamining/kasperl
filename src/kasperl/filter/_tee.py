@@ -3,7 +3,7 @@ import argparse
 from typing import List, Dict
 
 from wai.logging import LOGGING_WARNING
-from seppl import split_args, split_cmdline, Plugin, AnyData, Initializable, MetaDataHandler
+from seppl import split_args, split_cmdline, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
 from seppl.io import Writer, BatchWriter, StreamWriter, Filter, MultiFilter
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
@@ -94,6 +94,7 @@ class Tee(Filter, abc.ABC):
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
         return parser
 
+    @abc.abstractmethod
     def _available_filters(self) -> Dict[str, Plugin]:
         """
         Returns the available filters from the registry.
@@ -103,6 +104,7 @@ class Tee(Filter, abc.ABC):
         """
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def _available_writers(self) -> Dict[str, Plugin]:
         """
         Returns the available writers from the registry.
@@ -174,10 +176,12 @@ class Tee(Filter, abc.ABC):
 
         if self._filter is not None:
             self._filter.session = self.session
-            self._filter.initialize()
+            if isinstance(self._filter, Initializable):
+                init_initializable(self._filter, "filter")
         if self._writer is not None:
             self._writer.session = self.session
-            self._writer.initialize()
+            if isinstance(self._writer, Initializable):
+                init_initializable(self._writer, "writer")
 
         if (self.field is not None) and (self.value is None):
             raise Exception("No value provided to compare with!")
@@ -236,7 +240,7 @@ class Tee(Filter, abc.ABC):
             self._data_buffer = None
 
         # finalize sub-flow
-        if self._filter is not None:
+        if (self._filter is not None) and isinstance(self._filter, Initializable):
             self._filter.finalize()
         if (self._writer is not None) and isinstance(self._writer, Initializable):
             self._writer.finalize()

@@ -147,6 +147,7 @@ class PollDir(Reader, PlaceholderSupporter, abc.ABC):
         if not os.path.isdir(path):
             raise Exception("%s directory does not point to a directory: %s" % (name.capitalize(), path))
 
+    @abc.abstractmethod
     def _available_readers(self) -> Dict[str, Plugin]:
         """
         Return the available readers.

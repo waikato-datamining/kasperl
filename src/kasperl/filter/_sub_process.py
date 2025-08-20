@@ -2,7 +2,7 @@ import abc
 import argparse
 from typing import List, Dict
 
-from seppl import split_args, split_cmdline, Plugin, AnyData, MetaDataHandler
+from seppl import split_args, split_cmdline, Plugin, AnyData, MetaDataHandler, init_initializable, Initializable
 from seppl.io import Filter, MultiFilter
 from wai.logging import LOGGING_WARNING
 
@@ -93,6 +93,7 @@ class SubProcess(Filter, abc.ABC):
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
         return parser
 
+    @abc.abstractmethod
     def _available_filters(self) -> Dict[str, Plugin]:
         """
         Returns the available filters from the registry.
@@ -156,7 +157,8 @@ class SubProcess(Filter, abc.ABC):
 
         if self._filter is not None:
             self._filter.session = self.session
-            self._filter.initialize()
+            if isinstance(self._filter, Initializable):
+                init_initializable(self._filter, "filter")
 
         if (self.field is not None) and (self.value is None):
             raise Exception("No value provided to compare with!")
@@ -200,5 +202,5 @@ class SubProcess(Filter, abc.ABC):
         super().finalize()
 
         # finalize sub-flow
-        if self._filter is not None:
+        if (self._filter is not None) and isinstance(self._filter, Initializable):
             self._filter.finalize()

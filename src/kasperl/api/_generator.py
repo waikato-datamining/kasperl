@@ -32,6 +32,7 @@ class Generator(PluginWithLogging, Initializable, abc.ABC):
         """
         return None
 
+    @abc.abstractmethod
     def _do_generate(self) -> List[Dict[str, str]]:
         """
         Generates the variables.
@@ -105,6 +106,7 @@ class SingleVariableGenerator(Generator):
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.var_name = var_name
 
+    @abc.abstractmethod
     def _default_var_name(self) -> str:
         """
         Returns the default variable name.
