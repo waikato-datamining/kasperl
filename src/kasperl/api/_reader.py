@@ -1,3 +1,4 @@
+import argparse
 from typing import Dict
 import seppl.io
 from seppl import Initializable, Plugin
@@ -37,3 +38,20 @@ def parse_reader(reader: str, available_readers: Dict[str, Plugin]) -> Reader:
     else:
         raise Exception("Expected to obtain one reader from '%s' but got %d instead!" % (reader, len(objs)))
     return result
+
+
+def add_annotations_only_reader_param(parser: argparse.ArgumentParser):
+    """
+    Adds the --annotations_only parameter to the parser, as used by readers of type AnnotationOnlyReader.
+
+    :param parser: the parser
+    :type parser: argparse.ArgumentParser
+    """
+    parser.add_argument("--annotations_only", action="store_true", help="Reads only the annotations.")
+
+
+class AnnotationsOnlyReader:
+    """
+    Mixin for reader that can read the annotations by itself.
+    """
+    pass

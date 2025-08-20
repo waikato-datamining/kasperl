@@ -183,7 +183,7 @@ def parse_writer(writer: str, available_writers: Dict[str, Plugin]) -> seppl.io.
     return result
 
 
-def add_annotations_only_param(parser: argparse.ArgumentParser):
+def add_annotations_only_writer_param(parser: argparse.ArgumentParser):
     """
     Adds the --annotations_only parameter to the parser, as used by writers of type AnnotationOnlyWriter.
 
