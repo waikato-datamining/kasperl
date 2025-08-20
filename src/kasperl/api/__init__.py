@@ -10,5 +10,5 @@ from ._reader import Reader, parse_reader, AnnotationsOnlyReader, add_annotation
 from ._filter import Filter, parse_filter
 from ._writer import BatchWriter, SplittableBatchWriter, StreamWriter, SplittableStreamWriter, parse_writer, \
     AnnotationsOnlyWriter, add_annotations_only_writer_param
-from ._utils import strip_suffix, locate_file, load_function, safe_deepcopy
+from ._utils import strip_suffix, locate_file, load_function, safe_deepcopy, annotation_to_name
 from ._conversion import parse_conversion_args, print_conversion_usage, perform_conversion

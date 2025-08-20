@@ -95,3 +95,19 @@ def safe_deepcopy(obj: Optional[Any]) -> Optional[Any]:
         return None
     else:
         return copy.deepcopy(obj)
+
+
+def annotation_to_name(ann: str, ext: str = ".jpg") -> str:
+    """
+    Generates a name from the annotation file name.
+
+    :param ann: the annotation to create the name from
+    :type ann: str
+    :param ext: the extension to use for the name (incl dot)
+    :type ext: str
+    :return: the generated name
+    :rtype: str
+    """
+    result = os.path.basename(ann)
+    result = os.path.splitext(result)[0] + ext
+    return result
