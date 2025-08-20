@@ -87,7 +87,7 @@ class Generator(PluginWithLogging, Initializable, abc.ABC):
         return args_to_objects(generator_args, available_generators)
 
 
-class SingleVariableGenerator(Generator):
+class SingleVariableGenerator(Generator, abc.ABC):
     """
     Ancestor for generators that output just a single variable.
     """
