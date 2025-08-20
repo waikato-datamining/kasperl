@@ -1,3 +1,4 @@
+import abc
 import argparse
 from typing import List, Dict
 
@@ -6,7 +7,7 @@ from seppl import Initializable, Plugin
 import seppl.io
 
 
-class BatchWriter(seppl.io.BatchWriter, Initializable):
+class BatchWriter(seppl.io.BatchWriter, Initializable, abc.ABC):
     """
     Ancestor for dataset batch writers.
     """
@@ -23,7 +24,7 @@ class BatchWriter(seppl.io.BatchWriter, Initializable):
         super().__init__(logger_name=logger_name, logging_level=logging_level)
 
 
-class SplittableBatchWriter(BatchWriter):
+class SplittableBatchWriter(BatchWriter, abc.ABC):
     """
     Ancestor for dataset batch writers.
     """
@@ -78,7 +79,7 @@ class SplittableBatchWriter(BatchWriter):
         seppl.io.initialize_splitting(self)
 
 
-class StreamWriter(seppl.io.StreamWriter, Initializable):
+class StreamWriter(seppl.io.StreamWriter, Initializable, abc.ABC):
     """
     Ancestor for dataset stream writers.
     """
@@ -95,7 +96,7 @@ class StreamWriter(seppl.io.StreamWriter, Initializable):
         super().__init__(logger_name=logger_name, logging_level=logging_level)
 
 
-class SplittableStreamWriter(StreamWriter):
+class SplittableStreamWriter(StreamWriter, abc.ABC):
     """
     Ancestor for dataset stream writers.
     """
