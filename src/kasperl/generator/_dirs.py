@@ -77,7 +77,7 @@ class DirectoryGenerator(Generator):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--path", type=str, metavar="DIR", default=None, help="The directory/directories to serarch", required=True, nargs="+")
+        parser.add_argument("-p", "--path", type=str, metavar="DIR", default=None, help="The directory/directories to search", required=True, nargs="+")
         parser.add_argument("-r", "--recursive", action="store_true", help="Whether to search for directories recursively.", required=False)
         parser.add_argument("--regexp", type=str, metavar="REGEXP", default=None, help="The regular expression to use for matching directories; matches all if not provided.", required=False)
         parser.add_argument("--file_regexp", type=str, metavar="REGEXP", default=None, help="Only directories that have at least one file matching this regexp are returned (path is excluded from test); all directories are turned if not provided.", required=False)
