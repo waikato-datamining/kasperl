@@ -1,7 +1,8 @@
 import argparse
 import logging
 import os
-from typing import List, Dict, Optional
+import shlex
+from typing import List, Dict, Optional, Union
 
 from wai.logging import init_logging, set_logging_level, add_logging_level
 
@@ -10,10 +11,38 @@ from seppl import split_cmdline, Plugin
 from seppl.placeholders import load_user_defined_placeholders
 
 
-DESCRIPTION = "Tool for executing a pipeline multiple times, each time with a different set of variables expanded. A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}')."
+DESCRIPTION = "Tool for executing a pipeline multiple times, each time with a different set of variables expanded. " \
+              "A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}'). " \
+              "All remaining arguments are interpreted as pipeline arguments, making it easy to prefix the exec " \
+              "arguments to an existing pipeline command."
 
 
-def execute_pipeline(convert_prog: str, convert_func, pipeline: str, generator: str, generators: Dict[str, Plugin],
+def _expand_vars(pipeline: Union[str, List[str]], vars_: Dict) -> Union[str, List[str]]:
+    """
+    Expands the variables in the pipeline.
+
+    :param pipeline: the pipeline to expand
+    :type pipeline: str or list
+    :param vars_: the variables to expand
+    :type vars_: dict
+    :return: the expanded pipeline
+    :rtype: str or list
+    """
+    if isinstance(pipeline, str):
+        result = pipeline
+        for var in vars_:
+            result = result.replace("{%s}" % var, vars_[var])
+    else:
+        result = []
+        for arg in pipeline:
+            for var in vars_:
+                arg = arg.replace("{%s}" % var, vars_[var])
+            result.append(arg)
+
+    return result
+
+
+def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[str]], generator: str, generators: Dict[str, Plugin],
                      dry_run: bool = False, prefix: str = False, logger: logging.Logger = None):
     """
     Executes the specified pipeline as many times as the generators produce variables.
@@ -22,7 +51,7 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: str, generator: 
     :type convert_prog: str
     :param convert_func: the main method for executing the conversion executable
     :param pipeline: the pipeline template to use
-    :type pipeline: str
+    :type pipeline: str or list
     :param generator: the generator command-line to use for generating variable values to be expanded in the pipeline template
     :type generator: str
     :param generators: the available generators
@@ -34,10 +63,16 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: str, generator: 
     :param logger: the logger instance to use
     :type logger: logging.Logger
     """
-    # remove whitespaces, idc-convert from pipeline
-    pipeline = pipeline.strip()
-    if pipeline.startswith(convert_prog):
-        pipeline = pipeline[len(convert_prog):].strip()
+    if isinstance(pipeline, str):
+        # remove whitespaces, idc-convert from pipeline
+        pipeline = pipeline.strip()
+        if pipeline.startswith(convert_prog):
+            pipeline = pipeline[len(convert_prog):].strip()
+    else:
+        # remove idc-convert from pipeline
+        if len(pipeline) > 0:
+            if pipeline[0].startswith(convert_prog):
+                pipeline = pipeline[1:]
 
     # parse generator
     generator_obj = Generator.parse_generator(generator, generators)
@@ -45,19 +80,24 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: str, generator: 
     # apply generator to pipeline template and execute it
     vars_list = generator_obj.generate()
     for vars_ in vars_list:
-        pipeline_exp = pipeline
-        for var in vars_:
-            pipeline_exp = pipeline_exp.replace("{%s}" % var, vars_[var])
+        pipeline_exp = _expand_vars(pipeline, vars_)
         if logger is not None:
-            logger.info("%s\n--> %s" % (pipeline, pipeline_exp))
+            logger.info("%s\n--> %s" % (str(pipeline), str(pipeline_exp)))
         if dry_run:
             if prefix is not None:
                 if not prefix.endswith(" "):
                     prefix = prefix + " "
-                pipeline_exp = prefix + pipeline_exp
-            print(pipeline_exp)
+                if isinstance(pipeline_exp, str):
+                    pipeline_exp = prefix + pipeline_exp
+                    print(pipeline_exp)
+                else:
+                    pipeline_exp[0] = prefix + pipeline_exp[0]
+                    print(shlex.join(pipeline_exp))
         else:
-            pipeline_args = split_cmdline(pipeline_exp)
+            if isinstance(pipeline_exp, str):
+                pipeline_args = split_cmdline(pipeline_exp)
+            else:
+                pipeline_args = pipeline_exp
             convert_func(pipeline_args)
 
 
@@ -90,11 +130,11 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser = argparse.ArgumentParser(
         prog=prog, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-p", "--pipeline", help="The pipeline template with variables to expand and then execute.", default=None, type=str, required=True)
     parser.add_argument("-g", "--generator", help="The generator plugin to use.", default=None, type=str, required=True)
     parser.add_argument("-n", "--dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
     parser.add_argument("-P", "--prefix", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
     parser.add_argument("--placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
+    parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute.", nargs=argparse.REMAINDER)
     if logger is not None:
         add_logging_level(parser)
     parsed = parser.parse_args(args=args)
