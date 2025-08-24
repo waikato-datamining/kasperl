@@ -130,29 +130,29 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser = argparse.ArgumentParser(
         prog=prog, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-g", "--generator", help="The generator plugin to use.", default=None, type=str, required=True)
-    parser.add_argument("-n", "--dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
-    parser.add_argument("-P", "--prefix", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
-    parser.add_argument("--placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
+    parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin to use, incl. its options.", default=None, type=str, required=True)
+    parser.add_argument("--exec_dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
+    parser.add_argument("--exec_prefix", metavar="PREFIX", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
+    parser.add_argument("--exec_placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
     parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute.", nargs=argparse.REMAINDER)
     if logger is not None:
-        add_logging_level(parser)
+        add_logging_level(parser, short_opt=None, long_opt="--exec_logging_level")
     parsed = parser.parse_args(args=args)
     if logger is not None:
         set_logging_level(logger, parsed.logging_level)
-    if parsed.placeholders is not None:
-        if not os.path.exists(parsed.placeholders):
-            msg = "Placeholder file not found: %s" % parsed.placeholders
+    if parsed.exec_placeholders is not None:
+        if not os.path.exists(parsed.exec_placeholders):
+            msg = "Placeholder file not found: %s" % parsed.exec_placeholders
             if logger is not None:
                 logger.error(msg)
             else:
                 print(msg)
         else:
-            msg = "Loading custom placeholders from: %s" % parsed.placeholders
+            msg = "Loading custom placeholders from: %s" % parsed.exec_placeholders
             if logger is not None:
                 logger.info(msg)
             else:
                 print(msg)
-            load_user_defined_placeholders(parsed.placeholders)
-    execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.generator, generators,
-                     dry_run=parsed.dry_run, prefix=parsed.prefix, logger=logger)
+            load_user_defined_placeholders(parsed.exec_placeholders)
+    execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.exec_generator, generators,
+                     dry_run=parsed.exec_dry_run, prefix=parsed.exec_prefix, logger=logger)
