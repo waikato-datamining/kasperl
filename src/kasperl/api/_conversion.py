@@ -5,13 +5,15 @@ import sys
 import traceback
 from typing import List, Tuple, Optional, Dict
 
-from wai.logging import set_logging_level, add_logging_level, LOGGING_LEVELS, init_logging
+from wai.logging import set_logging_level, LOGGING_LEVELS, init_logging
 
 from kasperl.api import Session
-from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, save_args
+from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, \
+    save_args
 from seppl.io import Reader, Filter, MultiFilter, Writer, execute
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from ._exec import load_pipeline, PIPELINE_FORMAT_FILE
+from ._help import CommandlineParameter, params_to_short, param_to_help, params_to_parser
 
 DEFAULT_UPDATE_INTERVAL = 1000
 
@@ -19,9 +21,30 @@ PARAM_LOAD_PIPELINE = "--load_pipeline"
 PARAM_DUMP_PIPELINE = "--dump_pipeline"
 
 
+def _default_params() -> List[CommandlineParameter]:
+    """
+    Returns the default options to use.
+
+    :return: the list of option definitions
+    :rtype: list
+    """
+    return [
+        CommandlineParameter(short_opt="-h", long_opt="--help", help="Show basic help message and exit.", action="store_true", is_help=True),
+        CommandlineParameter(long_opt="--help-all", help="Show basic help message plus help on all plugins and exit.", action="store_true", is_help=True),
+        CommandlineParameter(long_opt="--help-plugin", metavar="NAME", help="Show help message for plugin NAME and exit.", is_help=True),
+        CommandlineParameter(short_opt="-u", long_opt="--update_interval", metavar="INTERVAL", help="Outputs the progress every INTERVAL records (default: %d)." % DEFAULT_UPDATE_INTERVAL, type=int, default=DEFAULT_UPDATE_INTERVAL),
+        CommandlineParameter(short_opt="-l", long_opt="--logging_level", choices=LOGGING_LEVELS, help="The logging level to use (default: WARN)."),
+        CommandlineParameter(short_opt="-b", long_opt="--force_batch", help="Processes the data in batches.", action="store_true"),
+        CommandlineParameter(long_opt="--placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value)."),
+        CommandlineParameter(long_opt=PARAM_LOAD_PIPELINE, metavar="FILE", help="The file to load the pipeline command from."),
+        CommandlineParameter(long_opt=PARAM_DUMP_PIPELINE, metavar="FILE", help="The file to dump the pipeline command in."),
+    ]
+
+
 def print_conversion_usage(prog: str, description: str,
                            readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
-                           aliases: List[str] = None, plugin_details: bool = False, generate_plugin_usage=None):
+                           aliases: List[str] = None, plugin_details: bool = False, generate_plugin_usage=None,
+                           additional_params: Optional[List[CommandlineParameter]] = None):
     """
     Prints the program usage to stdout.
     Ensure global options are in sync with parser in parse_args method below.
@@ -41,15 +64,13 @@ def print_conversion_usage(prog: str, description: str,
     :param plugin_details: whether to output the plugin details as well
     :type plugin_details: bool
     :param generate_plugin_usage: the method for generating the plugin usage
+    :param additional_params: the additional parameters for the parser
+    :type additional_params: list
     """
-    cmd = "usage: " + prog
-    prefix = " " * (len(cmd) + 1)
-    logging_levels = ",".join(LOGGING_LEVELS)
-    print(cmd + " [-h|--help|--help-all|--help-plugin NAME]")
-    print(prefix + "[-u INTERVAL] [-b|--force_batch] [--placeholders FILE]")
-    print(prefix + "[" + PARAM_LOAD_PIPELINE + " FILE] [" + PARAM_DUMP_PIPELINE + " FILE]")
-    print(prefix + "[-l {%s}]" % logging_levels)
-    print(prefix + "[reader] [filter ...] [writer]")
+    params = _default_params()
+    if additional_params is not None:
+        params.extend(additional_params)
+    print(params_to_short(prog, params))
     print()
     print(description)
     print()
@@ -58,20 +79,8 @@ def print_conversion_usage(prog: str, description: str,
     print("writers (%d):\n" % len(writers) + enumerate_plugins(writers.keys(), aliases=aliases, prefix="   "))
     print()
     print("options:")
-    print("  -h, --help            show basic help message and exit")
-    print("  --help-all            show basic help message plus help on all plugins and exit")
-    print("  --help-plugin NAME    show help message for plugin NAME and exit")
-    print("  -u INTERVAL, --update_interval INTERVAL")
-    print("                        outputs the progress every INTERVAL records (default: %d)" % DEFAULT_UPDATE_INTERVAL)
-    print("  -l {%s}, --logging_level {%s}" % (logging_levels, logging_levels))
-    print("                        the logging level to use (default: WARN)")
-    print("  -b, --force_batch     processes the data in batches")
-    print("  --placeholders FILE")
-    print("                        The file with custom placeholders to load (format: key=value).")
-    print("  " + PARAM_LOAD_PIPELINE + " FILE")
-    print("                        The file to load the pipeline command from.")
-    print("  " + PARAM_DUMP_PIPELINE + " FILE")
-    print("                        The file to dump the pipeline command in.")
+    for param in params:
+        print(param_to_help(param))
     print()
     if plugin_details and (generate_plugin_usage is not None):
         all_plugins = dict()
@@ -85,7 +94,8 @@ def print_conversion_usage(prog: str, description: str,
 def parse_conversion_args(args: List[str], prog: str, description: str,
                           readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                           aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
-                          generate_plugin_usage=None, exit_on_help: bool = True) -> Optional[Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]]:
+                          generate_plugin_usage=None, exit_on_help: bool = True,
+                          additional_params: Optional[List[CommandlineParameter]] = None) -> Optional[Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]]:
     """
     Parses the arguments for the conversion tool.
 
@@ -110,6 +120,8 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     :param generate_plugin_usage: the method for generating the plugin usage
     :param exit_on_help: whether to perform a sys.exit(0) when help gets requested or just return None
     :type exit_on_help: bool
+    :param additional_params: the additional parameters for the parser
+    :type additional_params: list
     :return: tuple of (reader, filter, writer, session), the filter can be None
     :rtype: tuple
     """
@@ -131,7 +143,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
         else:
             print_conversion_usage(prog, description, readers, filters, writers,
                                    aliases=aliases, generate_plugin_usage=generate_plugin_usage,
-                                   plugin_details=plugin_details)
+                                   plugin_details=plugin_details, additional_params=additional_params)
         if exit_on_help:
             sys.exit(0)
         else:
@@ -197,12 +209,11 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
 
     # global options?
     # see print_usage() method above
+    params = _default_params()
+    if additional_params is not None:
+        params.extend(additional_params)
     parser = argparse.ArgumentParser()
-    add_logging_level(parser)
-    parser.add_argument("-u", "--update_interval", type=int, default=DEFAULT_UPDATE_INTERVAL)
-    parser.add_argument("-b", "--force_batch", action="store_true")
-    parser.add_argument("--placeholders")
-    parser.add_argument(PARAM_DUMP_PIPELINE)
+    params_to_parser(parser, params)
     session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []),
                       logger=logger)
     set_logging_level(session.logger, session.options.logging_level)
@@ -228,7 +239,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
 def perform_conversion(env_var: Optional[str], args: List[str], prog: str, description: str,
                        readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                        aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
-                       generate_plugin_usage=None):
+                       generate_plugin_usage=None, additional_params: Optional[List[CommandlineParameter]] = None):
     """
     Parses the command-line arguments and performs the conversion.
 
@@ -255,6 +266,8 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
     :param require_writer: whether a writer is required
     :type require_writer: bool
     :param generate_plugin_usage: the method for generating the plugin usage
+    :param additional_params: the additional parameters for the parser
+    :type additional_params: list
     :return: tuple of (reader, filter, writer, session), the filter can be None
     :rtype: tuple
     """
@@ -264,7 +277,7 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
         reader, filter_, writer, session = parse_conversion_args(
             _args, prog, description, readers, filters, writers,
             aliases=aliases, require_reader=require_reader, require_writer=require_writer,
-            generate_plugin_usage=generate_plugin_usage)
+            generate_plugin_usage=generate_plugin_usage, additional_params=additional_params)
         session.logger.info("options: %s" % str(_args))
         execute(reader, filter_, writer, session)
     except Exception:
