@@ -6,6 +6,21 @@ generic plugins for pipelines and building blocks for creating command-line
 tools for pipelines.
 
 
+## Installation
+
+Via PyPI:
+
+```bash
+pip install kasperl
+```
+
+The latest code straight from the repository:
+
+```bash
+pip install git+https://github.com/waikato-datamining/kasperl.git
+```
+
+
 ## Plugins/functions
 
 Plugins listed as `(abstract)` typically need one or more methods implemented
