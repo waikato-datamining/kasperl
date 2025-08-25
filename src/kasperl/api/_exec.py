@@ -11,10 +11,11 @@ from seppl.placeholders import load_user_defined_placeholders, expand_placeholde
 from kasperl.api import Generator
 
 
+PARAM_EXEC_FORMAT = "--exec_format"
+
+
 DESCRIPTION = "Tool for executing a pipeline multiple times, each time with a different set of variables expanded. " \
-              "A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}'). " \
-              "All remaining arguments are interpreted as pipeline arguments, making it easy to prefix the exec " \
-              "arguments to an existing pipeline command."
+              + "A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}')."
 
 
 PIPELINE_FORMAT_CMDLINE = "cmdline"
@@ -176,8 +177,15 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser.add_argument("--exec_dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
     parser.add_argument("--exec_prefix", metavar="PREFIX", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
     parser.add_argument("--exec_placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
-    parser.add_argument("--exec_format", choices=PIPELINE_FORMATS, help="The format that the pipeline is in.", required=False, default=PIPELINE_FORMAT_CMDLINE)
-    parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute. The format '" + PIPELINE_FORMAT_FILE + "' allows spreading the pipeline over multiple lines: it simply joins all lines into single command-line before splitting into individual arguments.", nargs=argparse.REMAINDER)
+    parser.add_argument(PARAM_EXEC_FORMAT, choices=PIPELINE_FORMATS, required=False, default=PIPELINE_FORMAT_CMDLINE,
+                        help="The format that the pipeline is in. "
+                             + "The format '" + PIPELINE_FORMAT_CMDLINE + "' interprets the remaining "
+                             + "arguments as the pipeline arguments to execute. "
+                             + "The format '" + PIPELINE_FORMAT_FILE + "' expects a file to load the pipeline arguments "
+                             + "from. This file format allows spreading the pipeline arguments over multiple lines: it "
+                             + "simply joins all lines into a single command-line before splitting it into individual "
+                             + "arguments for execution.")
+    parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute; see '" + PARAM_EXEC_FORMAT + "' option.", nargs=argparse.REMAINDER)
     if logger is not None:
         add_logging_level(parser, short_opt=None, long_opt="--exec_logging_level")
 
