@@ -1,6 +1,5 @@
 from ._check_duplicate_filenames import CheckDuplicateFilenames, DUPLICATE_ACTIONS, DUPLICATE_ACTION_IGNORE, DUPLICATE_ACTION_WARN, DUPLICATE_ACTION_DROP, DUPLICATE_ACTION_ERROR
 from ._discard_by_name import DiscardByName
-from ._discard_negatives import DiscardNegatives
 from ._max_records import MaxRecords
 from ._metadata import MetaData
 from ._metadata_from_name import MetaDataFromName
