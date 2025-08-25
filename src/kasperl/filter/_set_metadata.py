@@ -3,7 +3,7 @@ from typing import List
 
 from wai.logging import LOGGING_WARNING
 
-from build.lib.seppl import METADATA_TYPE_BOOL, METADATA_TYPE_NUMERIC
+from seppl import METADATA_TYPE_BOOL, METADATA_TYPE_NUMERIC
 from kasperl.api import make_list, flatten_list
 from seppl import MetaDataHandler, AnyData, METADATA_TYPES, METADATA_TYPE_STRING
 from seppl.io import Filter
