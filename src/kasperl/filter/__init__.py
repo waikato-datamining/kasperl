@@ -10,6 +10,7 @@ from ._randomize_records import RandomizeRecords
 from ._record_window import RecordWindow
 from ._rename import Rename, RENAME_PLACEHOLDERS, RENAME_PH_NAME, RENAME_PH_COUNT, RENAME_PH_PDIR, RENAME_PH_SAME, RENAME_PH_PDIR_SUFFIX, RENAME_PH_EXT, RENAME_PH_OCCURRENCES, RENAME_PH_HELP
 from ._sample import Sample
+from ._set_metadata import SetMetaData
 from ._set_placeholder import SetPlaceholder
 from ._split_records import SplitRecords
 from ._storage import StorageUpdater
