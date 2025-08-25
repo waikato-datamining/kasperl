@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Dict
 from wai.logging import set_logging_level, add_logging_level, LOGGING_LEVELS, init_logging
 
 from kasperl.api import Session
-from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility
+from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, save_args
 from seppl.io import Reader, Filter, MultiFilter, Writer, execute
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from ._exec import load_pipeline, PIPELINE_FORMAT_FILE
@@ -213,16 +213,14 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
             session.logger.info("Loading custom placeholders from: %s" % session.options.placeholders)
             load_user_defined_placeholders(session.options.placeholders)
     if session.options.dump_pipeline is not None:
-        session.logger.info("Dumping pipeline command in: %s" % session.options.dump_pipeline)
         # remove "--dump_pipeline ..." args
         dump_args = args[:]
         idx = dump_args.index(PARAM_DUMP_PIPELINE)
         del dump_args[idx]
         del dump_args[idx]
         # save arguments
-        with open(expand_placeholders(session.options.dump_pipeline), "w") as fp:
-            fp.write(prog + "\n")
-            fp.write("\n".join(dump_args))
+        pipeline_path = expand_placeholders(session.options.dump_pipeline)
+        save_args(dump_args, pipeline_path, handlers=handlers, prog=prog, logger=logger)
 
     return reader, filter_, writer, session
 

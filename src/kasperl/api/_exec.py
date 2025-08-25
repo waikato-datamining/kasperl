@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Union
 
 from wai.logging import init_logging, set_logging_level, add_logging_level
 
-from seppl import split_cmdline, Plugin
+from seppl import split_cmdline, Plugin, load_args
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from kasperl.api import Generator
 
@@ -55,12 +55,7 @@ def load_pipeline(pipeline: Union[str, List[str]], pipeline_format: str = PIPELI
         else:
             pipeline_file = shlex.join(pipeline)
         pipeline_file = expand_placeholders(pipeline_file)
-        if logger is not None:
-            logger.info("Loading pipeline from: %s" % pipeline_file)
-        with open(pipeline_file, "r") as fp:
-            lines = fp.readlines()
-        lines = [x.strip() for x in lines]
-        result = split_cmdline(" ".join(lines))
+        result = load_args(pipeline_file, logger=logger)
 
     else:
         raise Exception("Unhandled pipeline format: %s" % pipeline_format)
