@@ -11,8 +11,12 @@ from kasperl.api import Session
 from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility
 from seppl.io import Reader, Filter, MultiFilter, Writer, execute
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
+from ._exec import load_pipeline, PIPELINE_FORMAT_FILE
 
 DEFAULT_UPDATE_INTERVAL = 1000
+
+PARAM_LOAD_PIPELINE = "--load_pipeline"
+PARAM_DUMP_PIPELINE = "--dump_pipeline"
 
 
 def print_conversion_usage(prog: str, description: str,
@@ -42,11 +46,10 @@ def print_conversion_usage(prog: str, description: str,
     prefix = " " * (len(cmd) + 1)
     logging_levels = ",".join(LOGGING_LEVELS)
     print(cmd + " [-h|--help|--help-all|--help-plugin NAME]")
-    print(prefix + "[-u INTERVAL] [-b|--force_batch] [--placeholders FILE] [--dump_pipeline FILE]")
+    print(prefix + "[-u INTERVAL] [-b|--force_batch] [--placeholders FILE]")
+    print(prefix + "[" + PARAM_LOAD_PIPELINE + " FILE] [" + PARAM_DUMP_PIPELINE + " FILE]")
     print(prefix + "[-l {%s}]" % logging_levels)
-    print(prefix + "reader")
-    print(prefix + "[filter [filter [...]]]")
-    print(prefix + "[writer]")
+    print(prefix + "[reader] [filter ...] [writer]")
     print()
     print(description)
     print()
@@ -54,7 +57,7 @@ def print_conversion_usage(prog: str, description: str,
     print("filters (%d):\n" % len(filters) + enumerate_plugins(filters.keys(), aliases=aliases, prefix="   "))
     print("writers (%d):\n" % len(writers) + enumerate_plugins(writers.keys(), aliases=aliases, prefix="   "))
     print()
-    print("optional arguments:")
+    print("options:")
     print("  -h, --help            show basic help message and exit")
     print("  --help-all            show basic help message plus help on all plugins and exit")
     print("  --help-plugin NAME    show help message for plugin NAME and exit")
@@ -65,7 +68,9 @@ def print_conversion_usage(prog: str, description: str,
     print("  -b, --force_batch     processes the data in batches")
     print("  --placeholders FILE")
     print("                        The file with custom placeholders to load (format: key=value).")
-    print("  --dump_pipeline FILE")
+    print("  " + PARAM_LOAD_PIPELINE + " FILE")
+    print("                        The file to load the pipeline command from.")
+    print("  " + PARAM_DUMP_PIPELINE + " FILE")
     print("                        The file to dump the pipeline command in.")
     print()
     if plugin_details and (generate_plugin_usage is not None):
@@ -80,7 +85,7 @@ def print_conversion_usage(prog: str, description: str,
 def parse_conversion_args(args: List[str], prog: str, description: str,
                           readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                           aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
-                          generate_plugin_usage=None) -> Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]:
+                          generate_plugin_usage=None, exit_on_help: bool = True) -> Optional[Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]]:
     """
     Parses the arguments for the conversion tool.
 
@@ -103,9 +108,14 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     :param require_writer: whether a writer is required
     :type require_writer: bool
     :param generate_plugin_usage: the method for generating the plugin usage
+    :param exit_on_help: whether to perform a sys.exit(0) when help gets requested or just return None
+    :type exit_on_help: bool
     :return: tuple of (reader, filter, writer, session), the filter can be None
     :rtype: tuple
     """
+    logger = logging.getLogger(prog)
+
+    # prepare plugins
     partial = False
     all_plugins = dict()
     all_plugins.update(readers)
@@ -122,8 +132,24 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
             print_conversion_usage(prog, description, readers, filters, writers,
                                    aliases=aliases, generate_plugin_usage=generate_plugin_usage,
                                    plugin_details=plugin_details)
-        sys.exit(0)
+        if exit_on_help:
+            sys.exit(0)
+        else:
+            return None
 
+    # load_pipeline from file?
+    if PARAM_LOAD_PIPELINE in args:
+        idx = args.index(PARAM_LOAD_PIPELINE)
+        pipeline_file = args[idx+1]
+        pipeline_args = load_pipeline(pipeline_file, pipeline_format=PIPELINE_FORMAT_FILE,
+                                      remove_convert_prog=True, convert_prog=prog, logger=logger)
+        # remove "load pipeline" args
+        del args[idx]
+        del args[idx]
+        # append pipeline args from file
+        args.extend(pipeline_args)
+
+    # parse arguments
     parsed = split_args(args, handlers, partial=partial)
     plugins = args_to_objects(parsed, all_plugins, allow_global_options=True)
     reader = None
@@ -176,9 +202,9 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     parser.add_argument("-u", "--update_interval", type=int, default=DEFAULT_UPDATE_INTERVAL)
     parser.add_argument("-b", "--force_batch", action="store_true")
     parser.add_argument("--placeholders")
-    parser.add_argument("--dump_pipeline")
+    parser.add_argument(PARAM_DUMP_PIPELINE)
     session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []),
-                      logger=logging.getLogger(prog))
+                      logger=logger)
     set_logging_level(session.logger, session.options.logging_level)
     if session.options.placeholders is not None:
         if not os.path.exists(session.options.placeholders):
@@ -188,9 +214,15 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
             load_user_defined_placeholders(session.options.placeholders)
     if session.options.dump_pipeline is not None:
         session.logger.info("Dumping pipeline command in: %s" % session.options.dump_pipeline)
+        # remove "--dump_pipeline ..." args
+        dump_args = args[:]
+        idx = dump_args.index(PARAM_DUMP_PIPELINE)
+        del dump_args[idx]
+        del dump_args[idx]
+        # save arguments
         with open(expand_placeholders(session.options.dump_pipeline), "w") as fp:
             fp.write(prog + "\n")
-            fp.write("\n".join(args))
+            fp.write("\n".join(dump_args))
 
     return reader, filter_, writer, session
 
