@@ -79,7 +79,8 @@ def print_conversion_usage(prog: str, description: str,
 
 def parse_conversion_args(args: List[str], prog: str, description: str,
                           readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
-                          require_reader: bool = True, require_writer: bool = True, generate_plugin_usage=None) -> Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]:
+                          aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
+                          generate_plugin_usage=None) -> Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]:
     """
     Parses the arguments for the conversion tool.
 
@@ -95,6 +96,8 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     :type filters: dict
     :param writers: the available writers
     :type writers: dict
+    :param aliases: the list of aliases in the registry
+    :type aliases: list
     :param require_reader: whether a reader is required
     :type require_reader: bool
     :param require_writer: whether a writer is required
@@ -117,7 +120,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
             generate_plugin_usage(plugin_name)
         else:
             print_conversion_usage(prog, description, readers, filters, writers,
-                                   generate_plugin_usage=generate_plugin_usage,
+                                   aliases=aliases, generate_plugin_usage=generate_plugin_usage,
                                    plugin_details=plugin_details)
         sys.exit(0)
 
@@ -194,7 +197,8 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
 
 def perform_conversion(env_var: Optional[str], args: List[str], prog: str, description: str,
                        readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
-                       require_reader: bool = True, require_writer: bool = True, generate_plugin_usage=None):
+                       aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
+                       generate_plugin_usage=None):
     """
     Parses the command-line arguments and performs the conversion.
 
@@ -214,6 +218,8 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
     :type filters: dict
     :param writers: the available writers
     :type writers: dict
+    :param aliases: the list of aliases in the registry
+    :type aliases: list
     :param require_reader: whether a reader is required
     :type require_reader: bool
     :param require_writer: whether a writer is required
@@ -226,9 +232,8 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
     _args = sys.argv[1:] if (args is None) else args
     try:
         reader, filter_, writer, session = parse_conversion_args(
-            _args, prog, description,
-            readers, filters, writers,
-            require_reader=require_reader, require_writer=require_writer,
+            _args, prog, description, readers, filters, writers,
+            aliases=aliases, require_reader=require_reader, require_writer=require_writer,
             generate_plugin_usage=generate_plugin_usage)
         session.logger.info("options: %s" % str(_args))
         execute(reader, filter_, writer, session)
