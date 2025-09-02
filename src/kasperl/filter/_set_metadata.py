@@ -1,5 +1,5 @@
 import argparse
-from typing import List
+from typing import List, Any
 
 from wai.logging import LOGGING_WARNING
 
@@ -13,7 +13,7 @@ class SetMetaData(Filter):
     Sets the specified key/value pair in the meta-data.
     """
 
-    def __init__(self, field: str = None, value=None, as_type: str = None,
+    def __init__(self, field: str = None, value=None, as_type: str = None, use_current: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
@@ -23,6 +23,8 @@ class SetMetaData(Filter):
         :param value: the value to set
         :param as_type: the type to convert the value to
         :type as_type: str
+        :param use_current: whether to use the current data passing through instead of the value
+        :type use_current: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -33,6 +35,7 @@ class SetMetaData(Filter):
         self.field = field
         self.value = value
         self.as_type = as_type
+        self.use_current = use_current
         self._value = None
 
     def name(self) -> str:
@@ -51,7 +54,7 @@ class SetMetaData(Filter):
         :return: the description
         :rtype: str
         """
-        return "Sets the specified key/value pair in the meta-data."
+        return "Sets the specified key/value pair in the meta-data. Can use the data passing through instead of the specified value as well."
 
     def accepts(self) -> List:
         """
@@ -82,6 +85,7 @@ class SetMetaData(Filter):
         parser.add_argument("-f", "--field", type=str, help="The meta-data field to use in the comparison", required=True)
         parser.add_argument("-v", "--value", type=str, help="The value to use in the comparison", required=True)
         parser.add_argument("-t", "--as_type", choices=METADATA_TYPES, default=METADATA_TYPE_STRING, help="How to interpret the value")
+        parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -95,6 +99,7 @@ class SetMetaData(Filter):
         self.field = ns.field
         self.value = ns.value
         self.as_type = ns.as_type
+        self.use_current = ns.use_current
 
     def initialize(self):
         """
@@ -107,13 +112,22 @@ class SetMetaData(Filter):
             raise Exception("No value provided to compare with!")
         if self.as_type is None:
             self.as_type = METADATA_TYPE_STRING
+        self._value = self._to_type(self.value)
 
+    def _to_type(self, value: str) -> Any:
+        """
+        Turns the value into the specified type.
+
+        :param value: the value to process
+        :type value: str
+        :return: the converted value
+        """
         if self.as_type == METADATA_TYPE_STRING:
-            self._value = str(self.value)
+            return str(value)
         elif self.as_type == METADATA_TYPE_BOOL:
-            self._value = str(self.value).lower() == "true"
+            return str(value).lower() == "true"
         elif self.as_type == METADATA_TYPE_NUMERIC:
-            self._value = float(self.value)
+            return float(value)
         else:
             raise Exception("Unhandled meta-data type: %s" % self.as_type)
 
@@ -126,6 +140,11 @@ class SetMetaData(Filter):
         """
         result = []
 
+        if self.use_current:
+            value = self._to_type(data)
+        else:
+            value = self._value
+
         for item in make_list(data):
             result.append(item)
             meta = None
@@ -136,7 +155,7 @@ class SetMetaData(Filter):
             if meta is None:
                 self.logger().info("No meta-data, ignoring")
             else:
-                self.logger().info("Setting meta-data: %s=%s" % (self.field, str(self.value)))
-                meta[self.field] = self._value
+                self.logger().info("Setting meta-data: %s=%s" % (self.field, str(value)))
+                meta[self.field] = value
 
         return flatten_list(result)

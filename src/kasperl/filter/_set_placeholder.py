@@ -9,7 +9,7 @@ from wai.logging import LOGGING_WARNING
 
 class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
 
-    def __init__(self, placeholder: str = None, value: str = None,
+    def __init__(self, placeholder: str = None, value: str = None, use_current: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
@@ -18,6 +18,8 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         :type placeholder: str
         :param value: the value of the placeholder
         :type value: str
+        :param use_current: whether to use the current data passing through instead of the value
+        :type use_current: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -26,6 +28,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.placeholder = placeholder
         self.value = value
+        self.use_current = use_current
 
     def name(self) -> str:
         """
@@ -43,7 +46,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         :return: the description
         :rtype: str
         """
-        return "Sets the placeholder to the specified value when data passes through. The value can contain other placeholders, which get expanded each time data passes through."
+        return "Sets the placeholder to the specified value when data passes through. The value can contain other placeholders, which get expanded each time data passes through. Can use the data passing through instead of specified value as well."
 
     def accepts(self) -> List:
         """
@@ -73,6 +76,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         parser = super()._create_argparser()
         parser.add_argument("-p", "--placeholder", type=str, help="The name of the placeholder, without curly brackets.", default=None, required=True)
         parser.add_argument("-v", "--value", type=str, help="The value of the placeholder, may contain other placeholders. " + placeholder_list(obj=self), default=None, required=True)
+        parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -85,6 +89,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         super()._apply_args(ns)
         self.placeholder = ns.placeholder
         self.value = ns.value
+        self.use_current = ns.use_current
 
     def initialize(self):
         """
@@ -103,7 +108,11 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
-        value = self.session.expand_placeholders(self.value)
+        if self.use_current:
+            value = str(data)
+        else:
+            value = self.value
+        value = self.session.expand_placeholders(value)
         self.logger().info("%s -> %s" % (self.placeholder, value))
         add_placeholder(self.placeholder, "no description", False, lambda i: value)
         return data
