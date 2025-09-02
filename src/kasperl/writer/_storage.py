@@ -21,7 +21,7 @@ class StorageWriter(StreamWriter):
         :type logging_level: str
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
-        self.storage_nameutput_dir = storage_name
+        self.storage_name = storage_name
 
     def name(self) -> str:
         """
