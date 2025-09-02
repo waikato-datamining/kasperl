@@ -75,7 +75,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-p", "--placeholder", type=str, help="The name of the placeholder, without curly brackets.", default=None, required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value of the placeholder, may contain other placeholders. " + placeholder_list(obj=self), default=None, required=True)
+        parser.add_argument("-v", "--value", type=str, help="The value of the placeholder, may contain other placeholders. " + placeholder_list(obj=self), default=None, required=False)
         parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
 
@@ -98,7 +98,7 @@ class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
         super().initialize()
         if self.placeholder is None:
             raise Exception("No placeholder name provided!")
-        if self.value is None:
+        if (not self.use_current) and (self.value is None):
             raise Exception("No placeholder value provided!")
 
     def _do_process(self, data):

@@ -83,7 +83,7 @@ class SetMetaData(Filter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--field", type=str, help="The meta-data field to use in the comparison", required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value to use in the comparison", required=True)
+        parser.add_argument("-v", "--value", type=str, help="The value to use in the comparison", required=False)
         parser.add_argument("-t", "--as_type", choices=METADATA_TYPES, default=METADATA_TYPE_STRING, help="How to interpret the value")
         parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
@@ -108,11 +108,12 @@ class SetMetaData(Filter):
         super().initialize()
         if self.field is None:
             raise Exception("No meta-data field provided!")
-        if self.value is None:
+        if (not self.use_current) and (self.value is None):
             raise Exception("No value provided to compare with!")
         if self.as_type is None:
             self.as_type = METADATA_TYPE_STRING
-        self._value = self._to_type(self.value)
+        if not self.use_current:
+            self._value = self._to_type(self.value)
 
     def _to_type(self, value: str) -> Any:
         """
