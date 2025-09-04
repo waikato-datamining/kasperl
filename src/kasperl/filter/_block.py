@@ -127,7 +127,7 @@ class Block(Filter):
                 comp_result = compare_values(v1, self.comparison, v2)
                 comp = str(meta[self.field]) + " " + self.comparison + " " + str(self.value) + " = " + str(comp_result)
                 self.logger().info("Field '%s': '%s'" % (self.field, comp))
-                if not comp_result:
+                if comp_result:
                     continue
 
             result.append(item)
