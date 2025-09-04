@@ -93,9 +93,9 @@ class MetaData(Filter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--field", type=str, help="The meta-data field to use in the comparison", required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value to use in the comparison", required=True)
         parser.add_argument("-c", "--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with")
+        parser.add_argument("-v", "--value", type=str, help="The value to use in the comparison", required=True)
         parser.add_argument("-a", "--action", choices=FILTER_ACTIONS, default=FILTER_ACTION_KEEP, help="How to react when a keyword is encountered")
         return parser
 

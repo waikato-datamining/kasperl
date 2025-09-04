@@ -89,9 +89,9 @@ class Tee(Filter, abc.ABC):
         parser = super()._create_argparser()
         parser.add_argument("-f", "--sub_flow", type=str, default=None, help="The command-line defining the subflow (filter(s)/writer).")
         parser.add_argument("--field", type=str, help="The meta-data field to use in the comparison", default=None, required=False)
-        parser.add_argument("--value", type=str, help="The value to use in the comparison", default=None, required=False)
         parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
+        parser.add_argument("--value", type=str, help="The value to use in the comparison", default=None, required=False)
         return parser
 
     @abc.abstractmethod
