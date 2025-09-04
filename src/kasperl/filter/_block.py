@@ -31,11 +31,8 @@ class Block(Filter):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.field = field
-        self.value = value
         self.comparison = comparison
-        self._filter = None
-        self._writer = None
-        self._data_buffer = None
+        self.value = value
 
     def name(self) -> str:
         """
@@ -98,8 +95,8 @@ class Block(Filter):
         """
         super()._apply_args(ns)
         self.field = ns.field
-        self.value = ns.value
         self.comparison = ns.comparison
+        self.value = ns.value
 
     def initialize(self):
         """
