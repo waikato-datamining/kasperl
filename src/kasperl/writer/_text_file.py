@@ -14,7 +14,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
     def __init__(self, path: str = None, append: bool = None, delete_on_initialize: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
-        Initializes the reader.
+        Initializes the writer.
 
         :param path: the file to write to
         :type path: str

@@ -11,7 +11,7 @@ class StorageWriter(StreamWriter):
 
     def __init__(self, storage_name: str = None, logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
-        Initializes the reader.
+        Initializes the writer.
 
         :param storage_name: the name for the object in internal storage
         :type storage_name: str
