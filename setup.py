@@ -32,6 +32,7 @@ setup(
     packages=find_namespace_packages(where='src'),
     install_requires=[
         "seppl",
+        "dotenv",
     ],
     version="0.0.1",
     author='Peter Reutemann',
