@@ -1,0 +1,264 @@
+import argparse
+import email
+import imaplib
+import os
+import re
+from time import sleep
+from typing import List, Iterable
+
+from dotenv import load_dotenv
+from wai.logging import LOGGING_WARNING
+
+from kasperl.api import Reader
+from seppl.placeholders import placeholder_list, PlaceholderSupporter
+
+
+IMAP_HOST = "IMAP_HOST"
+IMAP_PORT = "IMAP_PORT"
+IMAP_USER = "IMAP_USER"
+IMAP_PW = "IMAP_PW"
+IMAP_ENVS = [
+    IMAP_HOST,
+    IMAP_PORT,
+    IMAP_USER,
+    IMAP_PW,
+]
+
+
+class GetEmail(Reader, PlaceholderSupporter):
+
+    def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
+                 regexp: str = None, output_dir: str = None, poll_wait: float = None,
+                 logger_name: str = None, logging_level: str = LOGGING_WARNING):
+        """
+        Initializes the reader.
+
+        :param dotenv_path: the path to the .env file to use for initializing the IMAP environment vars
+        :type dotenv_path: str
+        :param folder: the folder to obtain the emails from, default is INBOX
+        :type folder: str
+        :param only_unseen: whether to list only unseen emails
+        :type only_unseen: bool
+        :param mark_as_read: whether to mark the retrieved emails as seen
+        :type mark_as_read: bool
+        :param regexp: the regular expression that the attachments must match, ignored if None
+        :type regexp: str
+        :param output_dir: the path of the text file to load
+        :type output_dir: str
+        :param poll_wait: the seconds to wait between polls
+        :type poll_wait: float
+        :param logger_name: the name to use for the logger
+        :type logger_name: str
+        :param logging_level: the logging level to use
+        :type logging_level: str
+        """
+        super().__init__(logger_name=logger_name, logging_level=logging_level)
+        self.dotenv_path = dotenv_path
+        self.folder = folder
+        self.only_unseen = only_unseen
+        self.mark_as_read = mark_as_read
+        self.regexp = regexp
+        self.output_dir = output_dir
+        self.poll_wait = poll_wait
+        self._dotenv_loaded = False
+        self._server = None
+
+    def name(self) -> str:
+        """
+        Returns the name of the handler, used as sub-command.
+
+        :return: the name
+        :rtype: str
+        """
+        return "get-email"
+
+    def description(self) -> str:
+        """
+        Returns a description of the reader.
+
+        :return: the description
+        :rtype: str
+        """
+        return "Retrieves emails from the specified IMAP folder, saves the attachments " \
+               "in the specified folder and forwards the file names of the saved attachments as list."
+
+    def _create_argparser(self) -> argparse.ArgumentParser:
+        """
+        Creates an argument parser. Derived classes need to fill in the options.
+
+        :return: the parser
+        :rtype: argparse.ArgumentParser
+        """
+        parser = super()._create_argparser()
+        parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the IMAP environment variables form (" + "|".join(IMAP_ENVS) + "); tries to load .env from the current directory if not specified; " + placeholder_list(obj=self), required=False, default=None)
+        parser.add_argument("-f", "--folder", metavar="FOLDER", type=str, help="The IMAP folder to obtain emails from.", required=False, default="INBOX")
+        parser.add_argument("-u", "--only_unseen", action="store_true", help="Whether to only retrieve unseen/new emails.", required=False)
+        parser.add_argument("-R", "--mark_as_read", action="store_true", help="Whether to mark the emails as read after retrieval.", required=False)
+        parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
+        parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=60.0)
+        return parser
+
+    def _apply_args(self, ns: argparse.Namespace):
+        """
+        Initializes the object with the arguments of the parsed namespace.
+
+        :param ns: the parsed arguments
+        :type ns: argparse.Namespace
+        """
+        super()._apply_args(ns)
+        self.dotenv_path = ns.dotenv_path
+        self.folder = ns.folder
+        self.only_unseen = ns.only_unseen
+        self.mark_as_read = ns.mark_as_read
+        self.regexp = ns.regexp
+        self.output_dir = ns.output_dir
+        self.poll_wait = ns.poll_wait
+        self._dotenv_loaded = False
+        self._server = None
+
+    def generates(self) -> List:
+        """
+        Returns the list of classes that get produced.
+
+        :return: the list of classes
+        :rtype: list
+        """
+        return [str]
+
+    def initialize(self):
+        """
+        Initializes the processing, e.g., for opening files or databases.
+        """
+        super().initialize()
+        if self.folder is None:
+            self.folder = "INBOX"
+        if self.only_unseen is None:
+            self.only_unseen = False
+        if self.mark_as_read is None:
+            self.mark_as_read = True
+        if self.regexp is None:
+            self.regexp = ""
+        if self.output_dir is None:
+            raise Exception("No output directory specified!")
+        if self.poll_wait is None:
+            self.poll_wait = 60.0
+
+    def read(self) -> Iterable:
+        """
+        Loads the data and returns the items one by one.
+
+        :return: the data
+        :rtype: Iterable
+        """
+        output_dir = self.session.expand_placeholders(self.output_dir)
+        if not os.path.exists(output_dir):
+            raise Exception("Output directory does not exist: %s" % output_dir)
+
+        # initialize environment variables
+        if not self._dotenv_loaded:
+            self._dotenv_loaded = True
+            if self.dotenv_path is None:
+                path = self.session.expand_placeholders("{CWD}/.env")
+                self.logger().info("Loading .env from current dir: %s" % path)
+                load_dotenv(path)
+            else:
+                path = self.session.expand_placeholders(self.dotenv_path)
+                self.logger().info("Loading .env: %s" % path)
+                load_dotenv(dotenv_path=path)
+
+        self.logger().info("Waiting for %s seconds before polling" % str(self.poll_wait))
+        sleep(self.poll_wait)
+
+        try:
+            # connect
+            if self._server is None:
+                self.logger().info("Connection to IMAP host: %s" % os.getenv(IMAP_HOST) + ":" + os.getenv(IMAP_PORT))
+                self._server = imaplib.IMAP4_SSL(os.getenv(IMAP_HOST), port=int(os.getenv(IMAP_PORT)))
+                self.logger().info("Logging in...")
+                self._server.login(os.getenv(IMAP_USER), os.getenv(IMAP_PW))
+
+            # select folder
+            self.logger().info("Selecting folder: %s" % self.folder)
+            self._server.select(mailbox=self.folder, readonly=False)
+
+            # search messages
+            self.logger().info("Looking for emails...")
+            if self.only_unseen:
+                status, messages = self._server.search(None, 'UNSEEN')
+            else:
+                status, messages = self._server.search(None, 'ALL')
+
+            if status != 'OK':
+                self.logger().warning("Failed to search emails: %s" % status)
+            else:
+                if isinstance(messages[0], bytes):
+                    msg_list = messages[0].decode("utf-8")
+                else:
+                    msg_list = messages[0]
+                if len(msg_list) == 0:
+                    self.logger().info("No messages found.")
+                    return None
+
+                msg_ids = msg_list.split(' ')
+                self.logger().info("# of messages found: %d" % len(msg_ids))
+                for msg_id in msg_ids:
+                    self.logger().info("Fetching message: %s" % msg_id)
+                    status, msg_data = self._server.fetch(msg_id, '(RFC822)')
+                    files = []
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple):
+                            msg = email.message_from_bytes(response_part[1])
+                            if not msg.is_multipart():
+                                self.logger().info("No attachments, skipping!")
+                            else:
+                                for part in msg.walk():
+                                    content_disposition = str(part.get("Content-Disposition"))
+                                    if "attachment" in content_disposition:
+                                        # download attachment
+                                        filename = part.get_filename()
+                                        if filename is not None:
+                                            # does the file name match the regexp?
+                                            if len(self.regexp) > 0:
+                                                if not re.match(self.regexp, filename):
+                                                    self.logger().info("Skipping attachment: %s" % filename)
+                                                    continue
+                                            output_file = os.path.join(self.session.expand_placeholders(self.output_dir), filename)
+                                            self.logger().info("Saving attachment to: %s" % output_file)
+                                            with open(output_file, "wb") as fp:
+                                                fp.write(part.get_payload(decode=True))
+                                            files.append(output_file)
+
+                                # mark as read?
+                                if self.mark_as_read:
+                                    self.logger().info("Marking message as read: %s" % msg_id)
+                                    status, data = self._server.uid('store', msg_id, '+FLAGS', '(\\Seen)')
+                                    if status != 'OK':
+                                        self.logger().warning("Failed to mark message as read: %s" % msg_id)
+
+                    # forward file names of downloaded attachments
+                    if len(files) > 0:
+                        yield files
+        except:
+            self.logger().error("Failed to get emails!", exc_info=True)
+
+    def has_finished(self) -> bool:
+        """
+        Returns whether reading has finished.
+
+        :return: True if finished
+        :rtype: bool
+        """
+        return False
+
+    def finalize(self):
+        """
+        Finishes the processing, e.g., for closing files or databases.
+        """
+        super().finalize()
+        if self._server is not None:
+            try:
+                self._server.close()
+            except:
+                pass
+            self._server = None
