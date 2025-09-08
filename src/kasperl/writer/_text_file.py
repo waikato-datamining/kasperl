@@ -11,13 +11,13 @@ from kasperl.api import make_list, StreamWriter
 
 class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
 
-    def __init__(self, path: str = None, append: bool = None, delete_on_initialize: bool = None,
+    def __init__(self, output_file: str = None, append: bool = None, delete_on_initialize: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the writer.
 
-        :param path: the file to write to
-        :type path: str
+        :param output_file: the file to write to
+        :type output_file: str
         :param append: whether to append the file rather than overwrite
         :type append: bool
         :param delete_on_initialize: whether to delete an existing file when initializing the writer
@@ -28,7 +28,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
         :type logging_level: str
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
-        self.path = path
+        self.output_file = output_file
         self.append = append
         self.delete_on_initialize = delete_on_initialize
 
@@ -58,7 +58,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--path", metavar="FILE", type=str, help="The file to write the data to; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the data to; " + placeholder_list(obj=self), required=True)
         parser.add_argument("-a", "--append", action="store_true", help="Whether to append the file rather than overwrite it.")
         parser.add_argument("-d", "--delete_on_initialize", action="store_true", help="Whether to remove any existing file when initializing the writer.")
         return parser
@@ -71,7 +71,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.path = ns.path
+        self.output_file = ns.output_file
         self.append = ns.append
         self.delete_on_initialize = ns.delete_on_initialize
 
@@ -80,10 +80,10 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        path = self.session.expand_placeholders(self.path)
-        if os.path.exists(path) and os.path.isfile(path):
-            self.logger().info("Deleting during initialization: %s" % path)
-            os.rmdir(path)
+        output_file = self.session.expand_placeholders(self.output_file)
+        if os.path.exists(output_file) and os.path.isfile(output_file):
+            self.logger().info("Deleting during initialization: %s" % output_file)
+            os.remove(output_file)
 
     def accepts(self) -> List:
         """
@@ -101,12 +101,12 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter):
         :param data: the data to write (single record or iterable of records)
         """
         for item in make_list(data):
-            path = self.session.expand_placeholders(self.path)
+            output_file = self.session.expand_placeholders(self.output_file)
             if self.append:
-                with open(path, "a") as fp:
+                with open(output_file, "a") as fp:
                     fp.write(str(item))
                     fp.write("\n")
             else:
-                with open(path, "w") as fp:
+                with open(output_file, "w") as fp:
                     fp.write(str(item))
                     fp.write("\n")
