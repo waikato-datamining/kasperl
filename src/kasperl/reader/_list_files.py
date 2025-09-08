@@ -11,13 +11,13 @@ from seppl.placeholders import placeholder_list, PlaceholderSupporter
 
 class ListFiles(Reader, PlaceholderSupporter):
 
-    def __init__(self, path: str = None, regexp: str = None, as_list: bool = None,
+    def __init__(self, input_dir: str = None, regexp: str = None, as_list: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the reader.
 
-        :param path: the path of the text file to load
-        :type path: str
+        :param input_dir: the directory to list files from
+        :type input_dir: str
         :param regexp: the regular expression that the files must match
         :type regexp: str
         :param as_list: whether to output the files as a list rather than one by one
@@ -28,7 +28,7 @@ class ListFiles(Reader, PlaceholderSupporter):
         :type logging_level: str
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
-        self.path = path
+        self.input_dir = input_dir
         self.regexp = regexp
         self.as_list = as_list
         self._finished = False
@@ -59,7 +59,7 @@ class ListFiles(Reader, PlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--path", metavar="DIR", type=str, help="The directory to list the files in; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-i", "--input_dir", metavar="DIR", type=str, help="The directory to list the files in; " + placeholder_list(obj=self), required=True)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the files must match.", required=False, default=".*")
         parser.add_argument("--as_list", action="store_true", help="Whether to forward the files as a list or one by one.", required=False)
         return parser
@@ -72,7 +72,7 @@ class ListFiles(Reader, PlaceholderSupporter):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.path = ns.path
+        self.input_dir = ns.input_dir
         self.regexp = ns.regexp
         self.as_list = ns.as_list
 
@@ -93,8 +93,8 @@ class ListFiles(Reader, PlaceholderSupporter):
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if self.path is None:
-            raise Exception("No path specified!")
+        if self.input_dir is None:
+            raise Exception("No input_dir specified!")
         if self.regexp is None:
             self.regexp = ".*"
         if self.as_list is None:
@@ -107,16 +107,16 @@ class ListFiles(Reader, PlaceholderSupporter):
         :return: the data
         :rtype: Iterable
         """
-        path = self.session.expand_placeholders(self.path)
-        if not os.path.exists(path):
-            raise Exception("Path does not exist: %s" % path)
-        if not os.path.isdir(path):
-            raise Exception("Not a directory: %s" % path)
-        self.logger().info("Listing files in: %s" % path)
+        input_dir = self.session.expand_placeholders(self.input_dir)
+        if not os.path.exists(input_dir):
+            raise Exception("input_dir does not exist: %s" % input_dir)
+        if not os.path.isdir(input_dir):
+            raise Exception("Not a directory: %s" % input_dir)
+        self.logger().info("Listing files in: %s" % input_dir)
         self._finished = False
         files = []
-        for f in os.listdir(path):
-            full = os.path.join(path, f)
+        for f in os.listdir(input_dir):
+            full = os.path.join(input_dir, f)
             if os.path.isdir(full):
                 continue
             if re.match(self.regexp, f):
