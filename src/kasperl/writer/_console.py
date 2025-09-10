@@ -1,3 +1,6 @@
+from typing import List
+
+from seppl import AnyData
 from seppl.io import StreamWriter
 
 
@@ -20,6 +23,15 @@ class ConsoleWriter(StreamWriter):
         :rtype: str
         """
         return "Just prints the data to stdout."
+
+    def accepts(self) -> List:
+        """
+        Returns the list of classes that are accepted.
+
+        :return: the list of classes
+        :rtype: list
+        """
+        return [AnyData]
 
     def write_stream(self, data):
         """
