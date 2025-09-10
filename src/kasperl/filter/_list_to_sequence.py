@@ -1,12 +1,12 @@
 import types
 from typing import List
 
-from kasperl.api import make_list, flatten_list
+from kasperl.api import make_list
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import StreamFilter
 
 
-class ListToSequence(Filter):
+class ListToSequence(StreamFilter):
     """
     Forwards the individual items of the incoming list.
     """
@@ -47,6 +47,21 @@ class ListToSequence(Filter):
         """
         return [AnyData]
 
+    def _do_process_stream(self, data):
+        """
+        Filters the data.
+
+        :param data: the data to filter
+        """
+        for item in make_list(data):
+            if isinstance(item, list):
+                self._stream_output.extend(item)
+            elif isinstance(item, types.GeneratorType):
+                for sub in item:
+                    self._stream_output.append(sub)
+            else:
+                self._stream_output.append(item)
+
     def _do_process(self, data):
         """
         Processes the data record(s).
@@ -54,14 +69,4 @@ class ListToSequence(Filter):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
-        result = []
-        for item in make_list(data):
-            if isinstance(item, list):
-                result.extend(item)
-            elif isinstance(item, types.GeneratorType):
-                for sub in item:
-                    result.append(sub)
-            else:
-                result.append(item)
-
-        return flatten_list(result)
+        return data
