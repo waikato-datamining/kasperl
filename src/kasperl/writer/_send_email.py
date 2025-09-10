@@ -11,7 +11,7 @@ from typing import List, Union
 from dotenv import load_dotenv
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import make_list, BatchWriter
+from kasperl.api import make_list, StreamWriter
 from seppl import AnyData
 from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
 
@@ -29,7 +29,7 @@ SMTP_ENVS = [
 ]
 
 
-class SendEmail(BatchWriter, InputBasedPlaceholderSupporter, abc.ABC):
+class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
 
     def __init__(self, dotenv_path: str = None, email_from: str = None, email_to: Union[str, List[str]] = None,
                  subject: str = None, body: str = None,
@@ -88,10 +88,10 @@ class SendEmail(BatchWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         parser = super()._create_argparser()
         parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the SMTP environment variables form (" + "|".join(SMTP_ENVS) + "); tries to load .env from the current directory if not specified; " + placeholder_list(obj=self), required=False, default=None)
-        parser.add_argument("-f", "--email_from", metavar="EMAIL", type=str, help="The email address to use for FROM.", default=None, required=True)
-        parser.add_argument("-t", "--email_to", metavar="EMAIL", type=str, help="The email address(es) to send the email TO.", default=None, required=True, nargs="+")
-        parser.add_argument("-s", "--subject", metavar="SUBJECT", type=str, help="The SUBJECT for the email.", default=None, required=False)
-        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use.", default=None, required=False)
+        parser.add_argument("-f", "--email_from", metavar="EMAIL", type=str, help="The email address to use for FROM; placeholders get automatically expanded.", default=None, required=True)
+        parser.add_argument("-t", "--email_to", metavar="EMAIL", type=str, help="The email address(es) to send the email TO; placeholders get automatically expanded.", default=None, required=True, nargs="+")
+        parser.add_argument("-s", "--subject", metavar="SUBJECT", type=str, help="The SUBJECT for the email; placeholders get automatically expanded.", default=None, required=False)
+        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use; placeholders get automatically expanded.", default=None, required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -223,12 +223,11 @@ class SendEmail(BatchWriter, InputBasedPlaceholderSupporter, abc.ABC):
                 if not self._attach_item(message, item):
                     self.logger().warning("Unhandled data type: %s" % str(type(item)))
 
-    def write_batch(self, data):
+    def write_stream(self, data):
         """
-        Saves the data in one go.
+        Saves the data one by one.
 
-        :param data: the data to write
-        :type data: Iterable
+        :param data: the data to write (single record or iterable of records)
         """
         # initialize environment variables
         if not self._dotenv_loaded:
@@ -253,10 +252,10 @@ class SendEmail(BatchWriter, InputBasedPlaceholderSupporter, abc.ABC):
 
             # assemble email
             message = MIMEMultipart()
-            message["From"] = self.email_from
-            message["To"] = ", ".join(self.email_to)
-            message["Subject"] = self.subject
-            message.attach(MIMEText(self.body, "plain"))
+            message["From"] = self.session.expand_placeholders(self.email_from)
+            message["To"] = ", ".join(self.session.expand_placeholders(self.email_to))
+            message["Subject"] = self.session.expand_placeholders(self.subject)
+            message.attach(MIMEText(self.session.expand_placeholders(self.body), "plain"))
             self._attach_items(message, make_list(data))
             self._server.send_message(message)
             self.logger().info("Email sent successfully!")
