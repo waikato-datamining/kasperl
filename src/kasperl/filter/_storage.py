@@ -3,12 +3,12 @@ from typing import List
 
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import make_list, flatten_list
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
+from kasperl.api import make_list, flatten_list
 
 
-class StorageUpdater(Filter):
+class StorageUpdater(BatchFilter):
     """
     Renames files using a user-supplied format.
     """

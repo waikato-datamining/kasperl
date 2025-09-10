@@ -3,14 +3,14 @@ from typing import List
 
 from wai.logging import LOGGING_WARNING
 from seppl import MetaDataHandler, get_metadata, AnyData
-from seppl.io import Splitter, Filter
+from seppl.io import Splitter, BatchFilter
 from kasperl.api import flatten_list, make_list
 
 META_SPLIT = "split"
 """ the key for storing the split name in the meta-data. """
 
 
-class SplitRecords(Filter):
+class SplitRecords(BatchFilter):
     """
     Splits the incoming records into the specified split ratios by setting the 'split' meta-data value.
     """

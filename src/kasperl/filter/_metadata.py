@@ -2,14 +2,14 @@ import argparse
 from typing import List
 
 from seppl import MetaDataHandler, AnyData
-from seppl.io import Filter, FILTER_ACTIONS, FILTER_ACTION_DISCARD, FILTER_ACTION_KEEP
+from seppl.io import BatchFilter, FILTER_ACTIONS, FILTER_ACTION_DISCARD, FILTER_ACTION_KEEP
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
 
 
-class MetaData(Filter):
+class MetaData(BatchFilter):
     """
     Keeps or discards data records based on meta-data values.
     """

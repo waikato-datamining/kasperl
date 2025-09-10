@@ -4,11 +4,11 @@ from typing import List, Any
 from wai.logging import LOGGING_WARNING
 
 from seppl import MetaDataHandler, AnyData, METADATA_TYPES, METADATA_TYPE_STRING, METADATA_TYPE_BOOL, METADATA_TYPE_NUMERIC
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from kasperl.api import make_list, flatten_list
 
 
-class SetMetaData(Filter):
+class SetMetaData(BatchFilter):
     """
     Sets the specified key/value pair in the meta-data.
     """

@@ -4,13 +4,13 @@ import re
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, flatten_list, NameSupporter
 
 
-class DiscardByName(Filter):
+class DiscardByName(BatchFilter):
     """
     Discards files based on list of image names and/or regular expressions that image names must match.
     """

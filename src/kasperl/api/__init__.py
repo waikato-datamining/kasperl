@@ -7,7 +7,7 @@ from ._generator import Generator, SingleVariableGenerator, test_generator, perf
 from ._exec import execute_pipeline, perform_pipeline_execution, load_pipeline, PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, PIPELINE_FORMAT_FILE
 from ._find import find_files_parser, find_files, perform_find_files
 from ._reader import Reader, parse_reader, AnnotationsOnlyReader, add_annotations_only_reader_param
-from ._filter import Filter, parse_filter
+from ._filter import BatchFilter, parse_filter
 from ._writer import BatchWriter, SplittableBatchWriter, StreamWriter, SplittableStreamWriter, parse_writer, \
     AnnotationsOnlyWriter, add_annotations_only_writer_param
 from ._utils import strip_suffix, locate_file, load_function, safe_deepcopy, annotation_to_name

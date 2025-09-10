@@ -2,12 +2,12 @@ import argparse
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from seppl.placeholders import add_placeholder, InputBasedPlaceholderSupporter, placeholder_list
 from wai.logging import LOGGING_WARNING
 
 
-class SetPlaceholder(Filter, InputBasedPlaceholderSupporter):
+class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
 
     def __init__(self, placeholder: str = None, value: str = None, use_current: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):

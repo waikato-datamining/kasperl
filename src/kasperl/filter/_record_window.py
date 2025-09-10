@@ -2,12 +2,12 @@ import argparse
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 from kasperl.api import flatten_list, make_list
 
 
-class RecordWindow(Filter):
+class RecordWindow(BatchFilter):
     """
     Only lets records pass that match the defined window and step size.
     """

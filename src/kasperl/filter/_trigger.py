@@ -7,10 +7,10 @@ from wai.logging import LOGGING_WARNING
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
 from seppl import split_args, split_cmdline, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
-from seppl.io import Writer, BatchWriter, Filter, MultiFilter, Reader, execute
+from seppl.io import Writer, BatchWriter, BatchFilter, MultiFilter, Reader, execute
 
 
-class Trigger(Filter, abc.ABC):
+class Trigger(BatchFilter, abc.ABC):
     """
     Triggers the sub-flow with data passing through.
     """
@@ -180,7 +180,7 @@ class Trigger(Filter, abc.ABC):
                         self._reader = plugin
                     else:
                         raise Exception("More than one reader defined in sub-flow!")
-                elif isinstance(plugin, Filter):
+                elif isinstance(plugin, BatchFilter):
                     filters.append(plugin)
                 elif isinstance(plugin, Writer):
                     self._writer = plugin

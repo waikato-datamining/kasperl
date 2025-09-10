@@ -10,7 +10,7 @@ from wai.logging import set_logging_level, LOGGING_LEVELS, init_logging
 from kasperl.api import Session
 from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, \
     save_args
-from seppl.io import Reader, Filter, MultiFilter, Writer, execute
+from seppl.io import Reader, BatchFilter, MultiFilter, Writer, execute
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from ._exec import load_pipeline, PIPELINE_FORMAT_FILE
 from ._help import CommandlineParameter, params_to_short, param_to_help, params_to_parser
@@ -95,7 +95,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
                           readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                           aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
                           generate_plugin_usage=None, exit_on_help: bool = True,
-                          additional_params: Optional[List[CommandlineParameter]] = None) -> Optional[Tuple[Optional[Reader], Optional[Filter], Optional[Writer], Session]]:
+                          additional_params: Optional[List[CommandlineParameter]] = None) -> Optional[Tuple[Optional[Reader], Optional[BatchFilter], Optional[Writer], Session]]:
     """
     Parses the arguments for the conversion tool.
 
@@ -175,7 +175,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
             else:
                 raise Exception("Only one reader can be defined!")
 
-        if isinstance(plugin, Filter):
+        if isinstance(plugin, BatchFilter):
             filters.append(plugin)
             continue
 

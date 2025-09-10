@@ -3,13 +3,13 @@ from typing import List
 
 from wai.logging import LOGGING_WARNING
 
+from seppl import AnyData, MetaDataHandler
+from seppl.io import BatchFilter
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
-from seppl import AnyData, MetaDataHandler
-from seppl.io import Filter
 
 
-class Block(Filter):
+class Block(BatchFilter):
     """
     Blocks data coming through when the expression evaluates to True.
     """

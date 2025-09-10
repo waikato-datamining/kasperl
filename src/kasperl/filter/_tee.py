@@ -4,12 +4,12 @@ from typing import List, Dict
 
 from wai.logging import LOGGING_WARNING
 from seppl import split_args, split_cmdline, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
-from seppl.io import Writer, BatchWriter, StreamWriter, Filter, MultiFilter
+from seppl.io import Writer, BatchWriter, StreamWriter, BatchFilter, MultiFilter
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
 
 
-class Tee(Filter, abc.ABC):
+class Tee(BatchFilter, abc.ABC):
     """
     Forwards the data coming through to the sub-flow.
     """
@@ -161,7 +161,7 @@ class Tee(Filter, abc.ABC):
             self._writer = None
             filters = []
             for plugin in self.sub_flow:
-                if isinstance(plugin, Filter):
+                if isinstance(plugin, BatchFilter):
                     filters.append(plugin)
                 elif isinstance(plugin, Writer):
                     self._writer = plugin

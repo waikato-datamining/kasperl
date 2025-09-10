@@ -1,11 +1,11 @@
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 
 
-class PassThrough(Filter):
+class PassThrough(BatchFilter):
     """
     Dummy, just passes through the data.
     """

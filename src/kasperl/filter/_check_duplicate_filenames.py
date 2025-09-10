@@ -2,7 +2,7 @@ import argparse
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, flatten_list, NameSupporter, SourceSupporter
@@ -19,7 +19,7 @@ DUPLICATE_ACTIONS = [
 ]
 
 
-class CheckDuplicateFilenames(Filter):
+class CheckDuplicateFilenames(BatchFilter):
     """
     Ensures that file names are unique (raises an exception if not).
     """

@@ -3,12 +3,12 @@ from random import Random
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 from kasperl.api import flatten_list, make_list
 
 
-class Sample(Filter):
+class Sample(BatchFilter):
     """
     Selects a sub-sample from the stream.
     """

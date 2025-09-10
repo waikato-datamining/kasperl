@@ -3,14 +3,14 @@ import argparse
 from typing import List, Dict
 
 from seppl import split_args, split_cmdline, Plugin, AnyData, MetaDataHandler, init_initializable, Initializable
-from seppl.io import Filter, MultiFilter
+from seppl.io import BatchFilter, MultiFilter
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
 
 
-class SubProcess(Filter, abc.ABC):
+class SubProcess(BatchFilter, abc.ABC):
     """
     Forwards the data coming through to the sub-flow.
     """

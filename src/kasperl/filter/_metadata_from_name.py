@@ -4,7 +4,7 @@ import re
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 from kasperl.api import make_list, flatten_list, NameSupporter, SourceSupporter
 
@@ -16,7 +16,7 @@ SOURCES = [
 ]
 
 
-class MetaDataFromName(Filter):
+class MetaDataFromName(BatchFilter):
     """
     Extracts a sub-string from the name or path and stores it in the meta-data.
     """

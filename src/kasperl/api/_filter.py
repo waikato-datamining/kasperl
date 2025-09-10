@@ -1,9 +1,9 @@
 from typing import Dict
 from seppl import Plugin
-from seppl.io import Filter
+from seppl.io import BatchFilter
 
 
-def parse_filter(filter_: str, available_filters: Dict[str, Plugin]) -> Filter:
+def parse_filter(filter_: str, available_filters: Dict[str, Plugin]) -> BatchFilter:
     """
     Parses the command-line and instantiates the filter.
 
@@ -23,7 +23,7 @@ def parse_filter(filter_: str, available_filters: Dict[str, Plugin]) -> Filter:
     args = split_args(split_cmdline(filter_), list(valid.keys()))
     objs = args_to_objects(args, valid, allow_global_options=False)
     if len(objs) == 1:
-        if isinstance(objs[0], Filter):
+        if isinstance(objs[0], BatchFilter):
             result = objs[0]
         else:
             raise Exception("Expected instance of Filter but got: %s" % str(type(objs[0])))

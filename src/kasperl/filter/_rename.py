@@ -3,7 +3,7 @@ import os
 from typing import List
 
 from seppl import AnyData
-from seppl.io import Filter
+from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 from kasperl.api import make_list, flatten_list, NameSupporter, SourceSupporter
 
@@ -58,7 +58,7 @@ def _format_help() -> str:
     return result
 
 
-class Rename(Filter):
+class Rename(BatchFilter):
     """
     Renames files using a user-supplied format.
     """
