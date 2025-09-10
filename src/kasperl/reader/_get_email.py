@@ -6,11 +6,12 @@ import re
 from time import sleep
 from typing import List, Iterable
 
+from email.header import decode_header
 from dotenv import load_dotenv
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
-from seppl.placeholders import placeholder_list, PlaceholderSupporter
+from seppl.placeholders import placeholder_list, PlaceholderSupporter, add_placeholder
 
 
 IMAP_HOST = "IMAP_HOST"
@@ -29,6 +30,7 @@ class GetEmail(Reader, PlaceholderSupporter):
 
     def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
                  regexp: str = None, output_dir: str = None, poll_wait: float = None,
+                 from_placeholder: str = None, subject_placeholder: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the reader.
@@ -47,6 +49,10 @@ class GetEmail(Reader, PlaceholderSupporter):
         :type output_dir: str
         :param poll_wait: the seconds to wait between polls
         :type poll_wait: float
+        :param from_placeholder: the placeholder name for storing the FROM email address under
+        :type from_placeholder: str
+        :param subject_placeholder: the placeholder name for storing the SUBJECT under
+        :type subject_placeholder: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -60,6 +66,8 @@ class GetEmail(Reader, PlaceholderSupporter):
         self.regexp = regexp
         self.output_dir = output_dir
         self.poll_wait = poll_wait
+        self.from_placeholder = from_placeholder
+        self.subject_placeholder= subject_placeholder
         self._dotenv_loaded = False
         self._server = None
 
@@ -97,6 +105,8 @@ class GetEmail(Reader, PlaceholderSupporter):
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
         parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
         parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=60.0)
+        parser.add_argument("-F", "--from_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the FROM email address under, without curly brackets.", required=False, default=None)
+        parser.add_argument("-S", "--subject_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the SUBJECT under, without curly brackets.", required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -114,6 +124,8 @@ class GetEmail(Reader, PlaceholderSupporter):
         self.regexp = ns.regexp
         self.output_dir = ns.output_dir
         self.poll_wait = ns.poll_wait
+        self.from_placeholder = ns.from_placeholder
+        self.subject_placeholder = ns.subject_placeholder
         self._dotenv_loaded = False
         self._server = None
 
@@ -206,9 +218,13 @@ class GetEmail(Reader, PlaceholderSupporter):
                     self.logger().info("Fetching message: %s" % msg_id)
                     status, msg_data = self._server.fetch(msg_id, '(RFC822)')
                     files = []
+                    from_ = None
+                    subject_ = None
                     for response_part in msg_data:
                         if isinstance(response_part, tuple):
                             msg = email.message_from_bytes(response_part[1])
+                            subject_, _ = decode_header(msg["Subject"])[0]
+                            from_, _ = decode_header(msg["From"])[0]
                             if not msg.is_multipart():
                                 self.logger().info("No attachments, skipping!")
                             else:
@@ -238,6 +254,12 @@ class GetEmail(Reader, PlaceholderSupporter):
 
                     # forward file names of downloaded attachments
                     if len(files) > 0:
+                        if (self.from_placeholder is not None) and (from_ is not None):
+                            self.logger().info("Setting placeholder '%s' to: %s" % (self.from_placeholder, from_))
+                            add_placeholder(self.from_placeholder, "from get-email", False, lambda i: from_)
+                        if (self.subject_placeholder is not None) and (subject_ is not None):
+                            self.logger().info("Setting placeholder '%s' to: %s" % (self.subject_placeholder, subject_))
+                            add_placeholder(self.subject_placeholder, "from get-email", False, lambda i: subject_)
                         yield files
         except:
             self.logger().error("Failed to get emails!", exc_info=True)
