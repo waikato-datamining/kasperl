@@ -7,6 +7,7 @@ from typing import List, Iterable, Dict
 
 from seppl.placeholders import PlaceholderSupporter, placeholder_list
 from seppl import Initializable, init_initializable, AnyData, Plugin
+from seppl.io import InfiniteReader
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader, parse_reader
@@ -15,7 +16,7 @@ GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
 
 
-class PollDir(Reader, PlaceholderSupporter, abc.ABC):
+class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, poll_wait: float = None, process_wait: float = None,
                  delete_input: bool = False, extensions: List[str] = None,

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
+from seppl.io import InfiniteReader
 from seppl.placeholders import placeholder_list, PlaceholderSupporter, add_placeholder
 
 
@@ -26,7 +27,7 @@ IMAP_ENVS = [
 ]
 
 
-class GetEmail(Reader, PlaceholderSupporter):
+class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
 
     def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
                  regexp: str = None, output_dir: str = None, poll_wait: float = None,
