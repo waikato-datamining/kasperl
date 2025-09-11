@@ -130,7 +130,7 @@ class MoveFiles(BatchFilter, InputBasedPlaceholderSupporter):
         target_path = self.session.expand_placeholders(self.target_dir)
         if target_path != self.target_dir:
             self.logger().info("Expanded target dir: %s" % target_path)
-        if os.path.exists(target_path):
+        if not os.path.exists(target_path):
             raise Exception("Target directory does not exist: %s" % target_path)
         if not os.path.isdir(target_path):
             raise Exception("Target directory is not a directory: %s" % target_path)
