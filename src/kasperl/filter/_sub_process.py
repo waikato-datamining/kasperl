@@ -148,7 +148,7 @@ class SubProcess(BatchFilter, abc.ABC):
             self._filter = None
             filters = []
             for plugin in self.sub_flow:
-                if isinstance(plugin, Filter):
+                if isinstance(plugin, BatchFilter):
                     filters.append(plugin)
             if len(filters) == 1:
                 self._filter = filters[0]
