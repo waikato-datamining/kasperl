@@ -141,7 +141,7 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
 
 
 def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: str, description: Optional[str],
-                               convert_prog: str, convert_func, generators: Dict[str, Plugin],
+                               convert_prog: str, convert_func, generators_plugins: Dict[str, Plugin],
                                logger: logging.Logger):
     """
     The main method for parsing command-line arguments.
@@ -157,8 +157,8 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     :param convert_prog: the conversion executable
     :type convert_prog: str
     :param convert_func: the main method for executing the conversion executable
-    :param generators: the available generators
-    :type generators: dict
+    :param generators_plugins: the available generators
+    :type generators_plugins: dict
     :param logger: the logger instance to use
     :type logger: logging.Logger
     """
@@ -166,11 +166,11 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
 
     if description is None:
         description = DESCRIPTION
-    description += " Available generators: " + ", ".join(generators)
+    description += " Available generators: " + ", ".join(generators_plugins)
     parser = argparse.ArgumentParser(
         prog=prog, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options.", default=None, type=str, required=True, nargs="+")
+    parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options. Flag needs to be specified for each generator.", default=None, type=str, required=True, action="append")
     parser.add_argument("--exec_dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
     parser.add_argument("--exec_prefix", metavar="PREFIX", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
     parser.add_argument("--exec_placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
@@ -206,6 +206,6 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
                 print(msg)
             load_user_defined_placeholders(parsed.exec_placeholders)
 
-    execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.exec_generator, generators,
+    execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.exec_generator, generators_plugins,
                      pipeline_format=parsed.exec_format, dry_run=parsed.exec_dry_run, prefix=parsed.exec_prefix,
                      logger=logger)

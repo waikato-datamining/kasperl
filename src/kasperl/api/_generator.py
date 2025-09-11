@@ -222,7 +222,7 @@ def perform_generator_test(env_var: Optional[str], args: List[str], prog: str, d
         description = "Tool for testing generators by outputting the generated variables and their associated values."
     description += " Available generators: " + ", ".join(sorted(list(generators.keys())))
     parser = argparse.ArgumentParser(prog=prog, description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-g", "--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options.", default=None, type=str, required=True, nargs="+")
+    parser.add_argument("-g", "--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options. Flag needs to be specified for each generator.", default=None, type=str, required=True, action="append")
     add_logging_level(parser)
     parsed = parser.parse_args(args=args)
     set_logging_level(logger, parsed.logging_level)
