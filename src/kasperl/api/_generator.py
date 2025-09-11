@@ -226,4 +226,4 @@ def perform_generator_test(env_var: Optional[str], args: List[str], prog: str, d
     add_logging_level(parser)
     parsed = parser.parse_args(args=args)
     set_logging_level(logger, parsed.logging_level)
-    test_generator(parsed.generator, generators)
+    test_generator(parsed.exec_generator, generators)
