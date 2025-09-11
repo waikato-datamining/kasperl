@@ -57,7 +57,7 @@ class PromptGenerator(Generator):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-v", "--var_names", type=str, metavar="NAME", default=None, help="The list of variable names to prompt the user with.", nargs="+")
+        parser.add_argument("-n", "--var_names", type=str, metavar="NAME", default=None, help="The list of variable names to prompt the user with.", nargs="+")
         parser.add_argument("-m", "--message", type=str, metavar="PROMPT", default=None, help="The custom message to prompt the user with; expects one %%s in the template which will get expanded with the variable name.", required=False)
         return parser
 
