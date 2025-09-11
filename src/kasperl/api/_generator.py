@@ -1,7 +1,7 @@
 import abc
 import argparse
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from wai.logging import LOGGING_WARNING, init_logging, add_logging_level, set_logging_level
 from seppl import Plugin, PluginWithLogging, Initializable, split_cmdline, split_args, args_to_objects
@@ -152,22 +152,51 @@ class SingleVariableGenerator(Generator, abc.ABC):
         return result
 
 
-def test_generator(generator: str, generators: Dict[str, Plugin]):
+def test_generator(generator: Union[str, List[str]], generators_plugins: Dict[str, Plugin]):
     """
     Parses/executes the generator and then outputs the generated variables.
 
     :param generator: the generator command-line to use for generating variable values
     :type generator: str
-    :param generators: the available generators
-    :type generators: dict
+    :param generators_plugins: the available generators
+    :type generators_plugins: dict
     """
-    # parse generator
-    generator_obj = Generator.parse_generator(generator, generators)
-
-    # apply generator to pipeline template and execute it
-    vars_list = generator_obj.generate()
+    vars_list = compile_generator_vars_list(generator, generators_plugins)
     for vars_ in vars_list:
         print(vars_)
+
+
+def compile_generator_vars_list(generator: Union[str, List[str]], generator_plugins: Dict[str, Plugin]) -> List[Dict[str, str]]:
+    """
+    Generates the list of variable dictionaries to execute the pipeline with.
+
+    :param generator: the generator command-line(s) to use for generating variable values to be expanded in the pipeline template
+    :type generator: str or list
+    :param generator_plugins: the available generator plugins (name -> plugin)
+    :type generator_plugins: dict
+    :return: the list of variables to execute the pipeline with
+    :rtype: list
+    """
+    # only one item left in list?
+    if isinstance(generator, list) and (len(generator) == 1):
+        generator = generator[0]
+
+    if isinstance(generator, str):
+        generator_obj = Generator.parse_generator(generator, generator_plugins)
+        result = generator_obj.generate()
+    else:
+        gen = generator.pop()
+        last_list = compile_generator_vars_list(gen, generator_plugins)
+        rest_list = compile_generator_vars_list(generator, generator_plugins)
+        result = []
+        for last in last_list:
+            for rest in rest_list:
+                combined = dict()
+                combined.update(last)
+                combined.update(rest)
+                result.append(combined)
+
+    return result
 
 
 def perform_generator_test(env_var: Optional[str], args: List[str], prog: str, description: Optional[str],
@@ -193,7 +222,7 @@ def perform_generator_test(env_var: Optional[str], args: List[str], prog: str, d
         description = "Tool for testing generators by outputting the generated variables and their associated values."
     description += " Available generators: " + ", ".join(sorted(list(generators.keys())))
     parser = argparse.ArgumentParser(prog=prog, description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-g", "--generator", help="The generator plugin to use.", default=None, type=str, required=True)
+    parser.add_argument("-g", "--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options.", default=None, type=str, required=True, nargs="+")
     add_logging_level(parser)
     parsed = parser.parse_args(args=args)
     set_logging_level(logger, parsed.logging_level)

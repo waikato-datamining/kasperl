@@ -8,14 +8,15 @@ from wai.logging import init_logging, set_logging_level, add_logging_level
 
 from seppl import split_cmdline, Plugin, load_args
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
-from kasperl.api import Generator
+from ._generator import compile_generator_vars_list
 
 
 PARAM_EXEC_FORMAT = "--exec_format"
 
 
 DESCRIPTION = "Tool for executing a pipeline multiple times, each time with a different set of variables expanded. " \
-              + "A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}')."
+              + "A variable is surrounded by curly quotes (e.g., variable 'i' gets referenced with '{i}'). " \
+              + "When supplying multiple generators, then these get treated as nested executions."
 
 
 PIPELINE_FORMAT_CMDLINE = "cmdline"
@@ -92,8 +93,10 @@ def _expand_vars(pipeline: List[str], vars_: Dict) -> Union[str, List[str]]:
     return result
 
 
-def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[str]], generator: str, generators: Dict[str, Plugin],
-                     pipeline_format: str = PIPELINE_FORMAT_CMDLINE, dry_run: bool = False, prefix: str = False, logger: logging.Logger = None):
+def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[str]],
+                     generator: Union[str, List[str]], generator_plugins: Dict[str, Plugin],
+                     pipeline_format: str = PIPELINE_FORMAT_CMDLINE, dry_run: bool = False,
+                     prefix: str = False, logger: logging.Logger = None):
     """
     Executes the specified pipeline as many times as the generators produce variables.
 
@@ -102,10 +105,10 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
     :param convert_func: the main method for executing the conversion executable
     :param pipeline: the pipeline template to use
     :type pipeline: str or list
-    :param generator: the generator command-line to use for generating variable values to be expanded in the pipeline template
-    :type generator: str
-    :param generators: the available generators
-    :type generators: dict
+    :param generator: the generator command-line(s) to use for generating variable values to be expanded in the pipeline template
+    :type generator: str or list
+    :param generator_plugins: the available generator plugins (name -> plugin)
+    :type generator_plugins: dict
     :param pipeline_format: the format the pipeline is in
     :type pipeline_format: str
     :param dry_run: whether to only expand/output but not execute the pipeline
@@ -119,11 +122,10 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
     pipeline = load_pipeline(pipeline, pipeline_format=pipeline_format,
                              remove_convert_prog=True, convert_prog=convert_prog, logger=logger)
 
-    # parse generator
-    generator_obj = Generator.parse_generator(generator, generators)
+    # generate variables
+    vars_list = compile_generator_vars_list(generator, generator_plugins)
 
     # apply generator to pipeline template and execute it
-    vars_list = generator_obj.generate()
     for vars_ in vars_list:
         pipeline_exp = _expand_vars(pipeline, vars_)
         if logger is not None:
@@ -168,7 +170,7 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser = argparse.ArgumentParser(
         prog=prog, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin to use, incl. its options.", default=None, type=str, required=True)
+    parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options.", default=None, type=str, required=True, nargs="+")
     parser.add_argument("--exec_dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
     parser.add_argument("--exec_prefix", metavar="PREFIX", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
     parser.add_argument("--exec_placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
