@@ -1,9 +1,7 @@
 import argparse
 import csv
 import os
-import re
-import traceback
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 
 from wai.logging import LOGGING_WARNING
 from kasperl.api import Generator
