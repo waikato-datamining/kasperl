@@ -5,7 +5,7 @@ import sys
 import traceback
 from typing import List, Tuple, Optional, Dict
 
-from wai.logging import set_logging_level, LOGGING_LEVELS, init_logging
+from wai.logging import set_logging_level, LOGGING_LEVELS, init_logging, LOGGING_WARNING
 
 from kasperl.api import Session
 from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, \
@@ -33,7 +33,7 @@ def _default_params() -> List[CommandlineParameter]:
         CommandlineParameter(long_opt="--help-all", help="Show basic help message plus help on all plugins and exit.", action="store_true", is_help=True),
         CommandlineParameter(long_opt="--help-plugin", metavar="NAME", help="Show help message for plugin NAME and exit.", is_help=True),
         CommandlineParameter(short_opt="-u", long_opt="--update_interval", metavar="INTERVAL", help="Outputs the progress every INTERVAL records (default: %d)." % DEFAULT_UPDATE_INTERVAL, type=int, default=DEFAULT_UPDATE_INTERVAL),
-        CommandlineParameter(short_opt="-l", long_opt="--logging_level", choices=LOGGING_LEVELS, help="The logging level to use (default: WARN)."),
+        CommandlineParameter(short_opt="-l", long_opt="--logging_level", choices=LOGGING_LEVELS, help="The logging level to use (default: WARN).", default=LOGGING_WARNING),
         CommandlineParameter(short_opt="-b", long_opt="--force_batch", help="Processes the data in batches.", action="store_true"),
         CommandlineParameter(long_opt="--placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value)."),
         CommandlineParameter(long_opt=PARAM_LOAD_PIPELINE, metavar="FILE", help="The file to load the pipeline command from."),
