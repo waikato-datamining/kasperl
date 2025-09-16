@@ -13,3 +13,4 @@ from ._writer import BatchWriter, SplittableBatchWriter, StreamWriter, Splittabl
 from ._utils import strip_suffix, locate_file, load_function, safe_deepcopy, annotation_to_name
 from ._conversion import parse_conversion_args, print_conversion_usage, perform_conversion
 from ._help import CommandlineParameter, params_to_parser, param_to_parser, params_to_short, param_to_short, param_to_help
+from ._plots import Plot, XYPlot, SequencePlot
