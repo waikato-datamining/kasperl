@@ -100,7 +100,7 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         """
         parser = super()._create_argparser()
         parser.add_argument("-i", "--dir_in", type=str, help="The directory to poll; " + placeholder_list(obj=self), required=True)
-        parser.add_argument("-o", "--dir_out", type=str, help="The directory to move the files to; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-o", "--dir_out", type=str, help="The directory to move the files to; " + placeholder_list(obj=self), required=False)
         parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=1.0)
         parser.add_argument("-W", "--process_wait", type=float, help="The number of seconds to wait before processing the polled files (e.g., waiting for files to be fully written)", required=False, default=0.0)
         parser.add_argument("-a", "--action", choices=POLL_ACTIONS, help="The action to apply to the input files; 'move' moves the files to --dir_out directory", required=False, default=POLL_ACTION_MOVE)
