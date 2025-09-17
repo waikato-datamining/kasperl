@@ -55,6 +55,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.add_annotations_only_reader_param (function)
 * kasperl.reader.GetEmail
 * kasperl.reader.ListFiles
+* kasperl.reader.MetaFileReader (abstract)
 * kasperl.reader.PollDir (abstract)
 * kasperl.reader.Start
 * kasperl.reader.Storage
@@ -110,6 +111,8 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.load_function (function)
 * kasperl.api.safe_deepcopy (function)
 * kasperl.api.compare_values, COMPARISONS, ... - function/constants for conditional processing
+* kasperl.api.make_list (function) - turns input data into an iterable list, if not already iterable
+* kasperl.api.flatten_list (function) - lists with only a single element get flattened
 
 
 ## Tools
@@ -129,11 +132,13 @@ functions.
 
 * kasperl.api.perform_generator_test
 * kasperl.api.test_generator
+* kasperl.api.compile_generator_vars_list
 
 ### Pipeline execution
 
 * kasperl.api.perform_pipeline_execution
 * kasperl.api.execute_pipeline
+* kasperl.api.load_pipeline
 
 ### Finding files
 
