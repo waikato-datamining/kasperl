@@ -135,10 +135,10 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :return: the list of classes
         :rtype: list
         """
-        if self.base_reader is None:
+        if self._base_reader is None:
             return [AnyData]
         else:
-            return [self.base_reader.generates()]
+            return [self._base_reader.generates()]
 
     @abc.abstractmethod
     def _available_readers(self) -> Dict[str, Plugin]:
