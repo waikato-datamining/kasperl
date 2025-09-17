@@ -163,9 +163,9 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
         # check dirs
         self._actual_dir_in = self.session.expand_placeholders(self.dir_in)
-        check_dir(self._actual_dir_in, "input")
+        check_dir(self._actual_dir_in, "Input")
         self._actual_dir_out = self.session.expand_placeholders(self.dir_out)
-        check_dir(self._actual_dir_out, "output")
+        check_dir(self._actual_dir_out, "Output")
 
         # configure base reader
         self._base_reader = parse_reader(self.base_reader, self._available_readers())
