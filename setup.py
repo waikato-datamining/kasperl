@@ -34,6 +34,11 @@ setup(
         "seppl",
         "dotenv",
     ],
+    entry_points={
+        "class_lister": [
+            "kasperl=kasperl.class_lister",
+        ],
+    },
     version="0.0.1",
     author='Peter Reutemann',
     author_email='fracpete@waikato.ac.nz',
