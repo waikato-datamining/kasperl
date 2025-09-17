@@ -25,6 +25,15 @@ EVENTS = [
     EVENT_MODIFIED,
 ]
 
+WATCH_ACTION_NOTHING = "nothing"
+WATCH_ACTION_MOVE = "move"
+WATCH_ACTION_DELETE = "delete"
+WATCH_ACTIONS = [
+    WATCH_ACTION_NOTHING,
+    WATCH_ACTION_MOVE,
+    WATCH_ACTION_DELETE,
+]
+
 
 class Handler(watchdog.events.PatternMatchingEventHandler):
 
@@ -46,7 +55,7 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
 class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, check_wait: float = None, process_wait: float = None,
-                 delete_input: bool = False, extensions: List[str] = None,
+                 action: str = None, extensions: List[str] = None,
                  other_input_files: List[str] = None, max_files: int = None, base_reader: str = None,
                  events: Union[str, List[str]] = None, logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
@@ -60,8 +69,8 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :type check_wait: float
         :param process_wait: the seconds to wait before processing the files (e.g., to be fully written to disk)
         :type process_wait: float
-        :param delete_input: whether to delete the input data
-        :type delete_input: bool
+        :param action: the action to apply to the input files
+        :type action: str
         :param extensions: the list of extensions to poll the directory for
         :type extensions: list
         :param other_input_files: other files that need to be present, glob expression (use placeholder GLOB_NAME_PLACEHOLDER)
@@ -82,7 +91,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.dir_out = dir_out
         self.check_wait = check_wait
         self.process_wait = process_wait
-        self.delete_input = delete_input
+        self.action = action
         self.extensions = extensions
         self.other_input_files = other_input_files
         self.max_files = max_files
@@ -126,7 +135,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         parser.add_argument("-o", "--dir_out", type=str, help="The directory to move the files to; " + placeholder_list(obj=self), required=True)
         parser.add_argument("-w", "--check_wait", type=float, help="The number of seconds to wait before checking whether any files were discovered.", required=False, default=0.01)
         parser.add_argument("-W", "--process_wait", type=float, help="The number of seconds to wait before processing the polled files (e.g., waiting for files to be fully written)", required=False, default=0.0)
-        parser.add_argument("-d", "--delete_input", action="store_true", help="Whether to delete the input files rather than move them to --dir_out directory", required=False, default=False)
+        parser.add_argument("-a", "--action", choices=WATCH_ACTIONS, help="The action to apply to the input files; 'move' moves the files to --dir_out directory", required=False, default=WATCH_ACTION_MOVE)
         parser.add_argument("-e", "--extensions", type=str, help="The extensions of the files to poll (incl. dot)", required=True, nargs="+")
         parser.add_argument("-O", "--other_input_files", type=str, help="The glob expression(s) for capturing other files apart from the input files; use " + GLOB_NAME_PLACEHOLDER + " in the glob expression for the current name", required=False, default=None, nargs="*")
         parser.add_argument("-m", "--max_files", type=int, help="The maximum number of files in a single poll; <1 for unlimited", required=False, default=-1)
@@ -146,7 +155,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.dir_out = ns.dir_out
         self.check_wait = ns.check_wait
         self.process_wait = ns.process_wait
-        self.delete_input = ns.delete_input
+        self.action = ns.action
         self.extensions = ns.extensions
         self.other_input_files = ns.other_input_files
         self.max_files = ns.max_files
@@ -186,8 +195,8 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             self.check_wait = 0.01
         if self.process_wait is None:
             self.process_wait = 0.0
-        if self.delete_input is None:
-            self.delete_input = False
+        if self.action is None:
+            self.action = WATCH_ACTION_MOVE
         if (self.extensions is None) or (len(self.extensions) == 0):
             raise Exception("No extensions defined for polling!")
         if self.max_files is None:
@@ -284,12 +293,16 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
             # delete or move files
             for file_path in self._files:
-                if self.delete_input:
+                if self.action == WATCH_ACTION_DELETE:
                     self.logger().debug("Deleting input: %s" % file_path)
                     os.remove(file_path)
-                else:
+                elif self.action == WATCH_ACTION_MOVE:
                     self.logger().debug("Moving input: %s -> %s" % (file_path, self._actual_dir_out))
                     os.rename(file_path, os.path.join(self._actual_dir_out, os.path.basename(file_path)))
+                elif self.action == WATCH_ACTION_NOTHING:
+                    pass
+                else:
+                    raise Exception("Unhandled action: %s" % self.action)
 
                 # other input files?
                 if self.other_input_files is not None:
@@ -297,12 +310,16 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
                         other_files = glob.glob(os.path.join(self._actual_dir_in, other_input_file.replace(GLOB_NAME_PLACEHOLDER, os.path.splitext(file_path)[0])))
                         for other_file in other_files:
                             other_path = os.path.join(self._actual_dir_in, other_file)
-                            if self.delete_input:
+                            if self.action == WATCH_ACTION_DELETE:
                                 self.logger().debug("Deleting other input: %s" % other_path)
                                 os.remove(other_path)
-                            else:
+                            elif self.action == WATCH_ACTION_MOVE:
                                 self.logger().debug("Moving other input: %s -> %s" % (other_path, self._actual_dir_out))
                                 os.rename(other_path, os.path.join(self._actual_dir_out, os.path.basename(other_path)))
+                            elif self.action == WATCH_ACTION_NOTHING:
+                                pass
+                            else:
+                                raise Exception("Unhandled action: %s" % self.action)
 
             # reset list
             self._files = []
