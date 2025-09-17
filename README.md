@@ -39,36 +39,52 @@ functionality. `(mixin)` classes can be added to relevant classes.
 
 * kasperl.api.Generator (superclass)
 * kasperl.api.SingleVariableGenerator
+* kasperl.generator.CSVFileGenerator
 * kasperl.generator.DirectoryGenerator
 * kasperl.generator.ListGenerator
 * kasperl.generator.NullGenerator
+* kasperl.generator.PromptGenerator
 * kasperl.generator.RangeGenerator
+* kasperl.generator.TextFileGenerator
 
 ### Readers
 
 * kasperl.api.Reader (superclass)
 * kasperl.api.parse_reader (function)
+* kasperl.api.AnnotationsOnlyReader (mixin)
+* kasperl.api.add_annotations_only_reader_param (function)
+* kasperl.filter.ListFiles
 * kasperl.filter.PollDir (abstract)
+* kasperl.filter.Start
+* kasperl.filter.Storage
+* kasperl.filter.TextFile
 
 ### Filters
 
 * kasperl.api.parse_filter (function)
+* kasperl.filter.Block
 * kasperl.filter.CheckDuplicateFilenames
 * kasperl.filter.DiscardByName
 * kasperl.filter.DiscardNegatives
+* kasperl.filter.ListToSequence
 * kasperl.filter.MaxRecords
 * kasperl.filter.MetaData
 * kasperl.filter.MetaDataFromName
 * kasperl.filter.MetaDataToPlaceholder
+* kasperl.filter.MoveFiles
 * kasperl.filter.PassThrough
 * kasperl.filter.RandomizeRecords
 * kasperl.filter.RecordWindow
 * kasperl.filter.Rename
 * kasperl.filter.Sample
+* kasperl.filter.SetMetaData
 * kasperl.filter.SetPlaceholder
 * kasperl.filter.SplitRecords
+* kasperl.filter.Stop
+* kasperl.filter.Storage
 * kasperl.filter.SubProcess (abstract)
 * kasperl.filter.Tee (abstract)
+* kasperl.filter.Trigger (abstract)
 
 ### Writers
 
@@ -79,7 +95,10 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.SplittableStreamWriter (superclass)
 * kasperl.api.AnnotationsOnlyWriter (mixin)
 * kasperl.api.add_annotations_only_param (function)
-
+* kasperl.writer.Console
+* kasperl.writer.SendEmail (abstract)
+* kasperl.writer.Storage
+* kasperl.writer.TextFile
 
 ### Other
 
