@@ -10,7 +10,7 @@ from seppl import Initializable, init_initializable, AnyData, Plugin
 from seppl.io import InfiniteReader
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import Reader, parse_reader
+from kasperl.api import Reader, parse_reader, check_dir
 
 GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
@@ -131,23 +131,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         else:
             return [self.base_reader.generates()]
 
-    def _check_dir(self, path: str, name: str):
-        """
-        Performs checks on the specified directory.
-        Raises an exception if a problem is encountered.
-
-        :param path: the directory to check
-        :type path: str
-        :param name: the name of the directory
-        :type name: str
-        """
-        if path is None:
-            raise Exception("No %s directory provided!" % name)
-        if not os.path.exists(path):
-            raise Exception("%s directory does not exist: %s" % (name.capitalize(), path))
-        if not os.path.isdir(path):
-            raise Exception("%s directory does not point to a directory: %s" % (name.capitalize(), path))
-
     @abc.abstractmethod
     def _available_readers(self) -> Dict[str, Plugin]:
         """
@@ -180,9 +163,9 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
         # check dirs
         self._actual_dir_in = self.session.expand_placeholders(self.dir_in)
-        self._check_dir(self._actual_dir_in, "input")
+        check_dir(self._actual_dir_in, "input")
         self._actual_dir_out = self.session.expand_placeholders(self.dir_out)
-        self._check_dir(self._actual_dir_out, "output")
+        check_dir(self._actual_dir_out, "output")
 
         # configure base reader
         self._base_reader = parse_reader(self.base_reader, self._available_readers())

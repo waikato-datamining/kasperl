@@ -1,10 +1,10 @@
 import argparse
 import csv
-import os
 from typing import Optional, List, Dict
 
 from wai.logging import LOGGING_WARNING
-from kasperl.api import Generator
+
+from kasperl.api import Generator, check_file
 
 
 class CSVFileGenerator(Generator):
@@ -75,10 +75,7 @@ class CSVFileGenerator(Generator):
         result = super()._check()
 
         if result is None:
-            if not os.path.exists(self.csv_file):
-                return "CSV file does not exist: %s" % self.csv_file
-            if os.path.isdir(self.csv_file):
-                return "CSV file points to a directory: %s" % self.csv_file
+            result = check_file(self.csv_file, "CSV", raise_exc=False)
 
         return result
 

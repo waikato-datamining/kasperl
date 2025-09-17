@@ -1,9 +1,9 @@
 import argparse
-import os
 from typing import Optional, List, Dict
 
 from wai.logging import LOGGING_WARNING
-from kasperl.api import SingleVariableGenerator
+
+from kasperl.api import SingleVariableGenerator, check_file
 
 
 class TextFileGenerator(SingleVariableGenerator):
@@ -86,10 +86,7 @@ class TextFileGenerator(SingleVariableGenerator):
         result = super()._check()
 
         if result is None:
-            if not os.path.exists(self.text_file):
-                return "Text file does not exist: %s" % self.text_file
-            if os.path.isdir(self.text_file):
-                return "Text file points to a directory: %s" % self.text_file
+            result = check_file(self.text_file, "Text", raise_exc=False)
 
         return result
 

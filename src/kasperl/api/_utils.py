@@ -111,3 +111,55 @@ def annotation_to_name(ann: str, ext: str = ".jpg") -> str:
     result = os.path.basename(ann)
     result = os.path.splitext(result)[0] + ext
     return result
+
+
+def check_dir(path: str, name: str, raise_exc: bool = True) -> Optional[str]:
+    """
+    Performs checks on the specified directory.
+    Raises an exception if a problem is encountered (not None, must exist, must be a directory).
+
+    :param path: the directory to check
+    :type path: str
+    :param name: the name of the directory
+    :type name: str
+    :param raise_exc: whether to raise an exception rather than returning the error message
+    :type raise_exc: bool
+    :return: the error messages or None if everything fine
+    :rtype: str
+    """
+    result = None
+    if path is None:
+        result = "No %s directory provided!" % name
+    elif not os.path.exists(path):
+        result = "%s directory does not exist: %s" % (name, path)
+    elif not os.path.isdir(path):
+        result = "%s directory does not point to a directory: %s" % (name, path)
+    if raise_exc and (result is not None):
+        raise Exception(result)
+    return result
+
+
+def check_file(path: str, name: str, raise_exc: bool = True) -> Optional[str]:
+    """
+    Performs checks on the specified file.
+    Raises an exception if a problem is encountered (not None, must exist, must not be a directory).
+
+    :param path: the file to check
+    :type path: str
+    :param name: the name of the file
+    :type name: str
+    :param raise_exc: whether to raise an exception rather than returning the error message
+    :type raise_exc: bool
+    :return: the error messages or None if everything fine
+    :rtype: str
+    """
+    result = None
+    if path is None:
+        result = "No %s file provided!" % name
+    elif not os.path.exists(path):
+        result = "%s file does not exist: %s" % (name, path)
+    elif os.path.isdir(path):
+        result = "%s points to a directory: %s" % (name, path)
+    if raise_exc and (result is not None):
+        raise Exception(result)
+    return result

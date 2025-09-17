@@ -33,6 +33,7 @@ setup(
     install_requires=[
         "seppl",
         "dotenv",
+        "watchdog",
     ],
     entry_points={
         "class_lister": [
