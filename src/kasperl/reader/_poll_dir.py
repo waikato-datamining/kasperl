@@ -3,14 +3,13 @@ import argparse
 import glob
 import os
 from time import sleep
-from typing import List, Iterable, Dict
+from typing import List, Iterable
 
-from seppl.placeholders import PlaceholderSupporter, placeholder_list
-from seppl import Initializable, init_initializable, AnyData, Plugin
-from seppl.io import InfiniteReader
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import Reader, parse_reader, check_dir
+from kasperl.api import MetaFileReader, check_dir
+from seppl.io import InfiniteReader
+from seppl.placeholders import PlaceholderSupporter, placeholder_list
 
 GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
@@ -25,7 +24,7 @@ POLL_ACTIONS = [
 ]
 
 
-class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
+class PollDir(MetaFileReader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, poll_wait: float = None, process_wait: float = None,
                  action: str = None, extensions: List[str] = None,
@@ -57,7 +56,7 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :param logging_level: the logging level to use
         :type logging_level: str
         """
-        super().__init__(logger_name=logger_name, logging_level=logging_level)
+        super().__init__(base_reader=base_reader, logger_name=logger_name, logging_level=logging_level)
         self.dir_in = dir_in
         self.dir_out = dir_out
         self.poll_wait = poll_wait
@@ -66,7 +65,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.extensions = extensions
         self.other_input_files = other_input_files
         self.max_files = max_files
-        self.base_reader = base_reader
         self._inputs = None
         self._current_input = None
         self._base_reader = None
@@ -107,7 +105,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         parser.add_argument("-e", "--extensions", type=str, help="The extensions of the files to poll (incl. dot)", required=True, nargs="+")
         parser.add_argument("-O", "--other_input_files", type=str, help="The glob expression(s) for capturing other files apart from the input files; use " + GLOB_NAME_PLACEHOLDER + " in the glob expression for the current name", required=False, default=None, nargs="*")
         parser.add_argument("-m", "--max_files", type=int, help="The maximum number of files in a single poll; <1 for unlimited", required=False, default=-1)
-        parser.add_argument("-b", "--base_reader", type=str, help="The command-line of the reader for reading the files", required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -126,29 +123,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.extensions = ns.extensions
         self.other_input_files = ns.other_input_files
         self.max_files = ns.max_files
-        self.base_reader = ns.base_reader
-
-    def generates(self) -> List:
-        """
-        Returns the list of classes that get produced.
-
-        :return: the list of classes
-        :rtype: list
-        """
-        if self._base_reader is None:
-            return [AnyData]
-        else:
-            return [self._base_reader.generates()]
-
-    @abc.abstractmethod
-    def _available_readers(self) -> Dict[str, Plugin]:
-        """
-        Return the available readers.
-
-        :return: the reader plugins
-        :rtype: dict
-        """
-        raise NotImplementedError()
 
     def initialize(self):
         """
@@ -167,8 +141,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             raise Exception("No extensions defined for polling!")
         if self.max_files is None:
             self.max_files = -1
-        if self.base_reader is None:
-            raise Exception("No base reader defined!")
 
         # check dirs
         self._actual_dir_in = self.session.expand_placeholders(self.dir_in)
@@ -176,12 +148,6 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         if self.action == POLL_ACTION_MOVE:
             self._actual_dir_out = self.session.expand_placeholders(self.dir_out)
             check_dir(self._actual_dir_out, "Output")
-
-        # configure base reader
-        self._base_reader = parse_reader(self.base_reader, self._available_readers())
-        if not hasattr(self._base_reader, "source"):
-            raise Exception("Reader does not have 'source' attribute: %s" % str(type(self._base_reader)))
-        self._base_reader.session = self.session
 
     def list_files(self):
         """
@@ -240,13 +206,7 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             if self.process_wait > 0:
                 self.logger().info("Waiting for %s seconds before processing" % str(self.process_wait))
                 sleep(self.process_wait)
-            self._base_reader.source = files
-            if isinstance(self._base_reader, Initializable):
-                init_initializable(self._base_reader, "reader", raise_again=True)
-            while not self._base_reader.has_finished():
-                for item in self._base_reader.read():
-                    result.append(item)
-            self._base_reader.finalize()
+            result = self._read_files(files)
 
         # action?
         for file_path in files:
@@ -289,12 +249,3 @@ class PollDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :rtype: bool
         """
         return False
-
-    def finalize(self):
-        """
-        Finishes the reading, e.g., for closing files or databases.
-        """
-        super().finalize()
-        if self._base_reader is not None:
-            self._base_reader.finalize()
-            self._base_reader = None

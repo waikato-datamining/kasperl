@@ -4,16 +4,15 @@ import glob
 import os
 from time import sleep
 from typing import List, Iterable, Dict, Union
+
 import watchdog.events
 import watchdog.observers
-
-from seppl.placeholders import PlaceholderSupporter, placeholder_list
-from seppl import Initializable, init_initializable, AnyData, Plugin
-from seppl.io import InfiniteReader
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import Reader, parse_reader, check_dir
-
+from kasperl.api import MetaFileReader, check_dir
+from seppl import AnyData, Plugin
+from seppl.io import InfiniteReader
+from seppl.placeholders import PlaceholderSupporter, placeholder_list
 
 GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
@@ -34,6 +33,15 @@ WATCH_ACTIONS = [
     WATCH_ACTION_DELETE,
 ]
 
+POLLING_TYPE_NEVER = "never"
+POLLING_TYPE_INITIAL = "initial"
+POLLING_TYPE_ALWAYS = "always"
+POLLING_TYPES = [
+    POLLING_TYPE_NEVER,
+    POLLING_TYPE_INITIAL,
+    POLLING_TYPE_ALWAYS,
+]
+
 
 class Handler(watchdog.events.PatternMatchingEventHandler):
 
@@ -45,18 +53,24 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
 
     def on_created(self, event):
         if EVENT_CREATED in self._events:
-            self.owner.list_files()
+            if self.owner.polling_type == POLLING_TYPE_ALWAYS:
+                self.owner.list_files()
+            else:
+                self.owner.add_file(event.src_path)
 
     def on_modified(self, event):
         if EVENT_MODIFIED in self._events:
-            self.owner.list_files()
+            if self.owner.polling_type == POLLING_TYPE_ALWAYS:
+                self.owner.list_files()
+            else:
+                self.owner.add_file(event.src_path)
 
 
-class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
+class WatchDir(MetaFileReader, InfiniteReader, PlaceholderSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, check_wait: float = None, process_wait: float = None,
-                 action: str = None, extensions: List[str] = None,
-                 other_input_files: List[str] = None, max_files: int = None, base_reader: str = None,
+                 action: str = None, extensions: List[str] = None, other_input_files: List[str] = None,
+                 max_files: int = None, polling_type: str = None, base_reader: str = None,
                  events: Union[str, List[str]] = None, logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the reader.
@@ -77,6 +91,8 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :type other_input_files: list
         :param max_files: the maximum number of files to poll (<1 for no limit)
         :type max_files: int
+        :param polling_type: what kind of polling to do
+        :type polling_type: str
         :param base_reader: the base reader to use (command-line)
         :type base_reader: str
         :param events: the event(s) to watch for
@@ -86,7 +102,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :param logging_level: the logging level to use
         :type logging_level: str
         """
-        super().__init__(logger_name=logger_name, logging_level=logging_level)
+        super().__init__(base_reader=base_reader, logger_name=logger_name, logging_level=logging_level)
         self.dir_in = dir_in
         self.dir_out = dir_out
         self.check_wait = check_wait
@@ -95,7 +111,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.extensions = extensions
         self.other_input_files = other_input_files
         self.max_files = max_files
-        self.base_reader = base_reader
+        self.polling_type = polling_type
         self.events = events
         self._inputs = None
         self._current_input = None
@@ -121,7 +137,11 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Watches a directory for file changes and presents them to the base reader."
+        return "Watches a directory for file changes and presents them to the base reader. " \
+            + "The 'polling_type' determines how files are being discovered: " \
+            + POLLING_TYPE_NEVER + ": always uses files supplied by the watchdog events; " \
+            + POLLING_TYPE_INITIAL + ": does a full poll when first starting and then relies on files form watchdog events; " \
+            + POLLING_TYPE_ALWAYS + ": performs and initial poll and whenever the watchdog triggers an event."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
@@ -139,7 +159,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         parser.add_argument("-e", "--extensions", type=str, help="The extensions of the files to poll (incl. dot)", required=True, nargs="+")
         parser.add_argument("-O", "--other_input_files", type=str, help="The glob expression(s) for capturing other files apart from the input files; use " + GLOB_NAME_PLACEHOLDER + " in the glob expression for the current name", required=False, default=None, nargs="*")
         parser.add_argument("-m", "--max_files", type=int, help="The maximum number of files in a single poll; <1 for unlimited", required=False, default=-1)
-        parser.add_argument("-b", "--base_reader", type=str, help="The command-line of the reader for reading the files", required=False, default=None)
+        parser.add_argument("-p", "--polling_type", choices=POLLING_TYPES, help="The type of polling type to perform.", required=False, default=POLLING_TYPE_NEVER)
         parser.add_argument("-E", "--events", choices=EVENTS, help="The events to monitor", required=True, default=None, nargs="+")
         return parser
 
@@ -159,7 +179,7 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         self.extensions = ns.extensions
         self.other_input_files = ns.other_input_files
         self.max_files = ns.max_files
-        self.base_reader = ns.base_reader
+        self.polling_type = ns.polling_type
         self.events = ns.events
 
     def generates(self) -> List:
@@ -201,8 +221,8 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             raise Exception("No extensions defined for polling!")
         if self.max_files is None:
             self.max_files = -1
-        if self.base_reader is None:
-            raise Exception("No base reader defined!")
+        if self.polling_type is None:
+            self.polling_type = POLLING_TYPE_NEVER
         if (self.events is None) or (len(self.events) == 0):
             raise Exception("No event(s) specified!")
 
@@ -213,11 +233,14 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             self._actual_dir_out = self.session.expand_placeholders(self.dir_out)
             check_dir(self._actual_dir_out, "Output")
 
-        # configure base reader
-        self._base_reader = parse_reader(self.base_reader, self._available_readers())
-        if not hasattr(self._base_reader, "source"):
-            raise Exception("Reader does not have 'source' attribute: %s" % str(type(self._base_reader)))
-        self._base_reader.session = self.session
+    def add_file(self, path: str):
+        """
+        Adds the path to the internal list of files to process.
+
+        :param path: the path to add
+        :type path: str
+        """
+        self._files.append(path)
 
     def list_files(self):
         """
@@ -273,24 +296,18 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         observer.start()
 
         # initial listing
-        self.list_files()
+        if self.polling_type in [POLLING_TYPE_INITIAL, POLLING_TYPE_ALWAYS]:
+            self.list_files()
 
         while not self.session.stopped:
             if len(self._files) == 0:
                 sleep(self.check_wait)
                 continue
 
-            result = []
             if self.process_wait > 0:
                 self.logger().info("Waiting for %s seconds before processing" % str(self.process_wait))
                 sleep(self.process_wait)
-            self._base_reader.source = self._files
-            if isinstance(self._base_reader, Initializable):
-                init_initializable(self._base_reader, "reader", raise_again=True)
-            while not self._base_reader.has_finished():
-                for item in self._base_reader.read():
-                    result.append(item)
-            self._base_reader.finalize()
+            result = self._read_files(self._files)
 
             # delete or move files
             for file_path in self._files:
@@ -342,9 +359,6 @@ class WatchDir(Reader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         Finishes the reading, e.g., for closing files or databases.
         """
         super().finalize()
-        if self._base_reader is not None:
-            self._base_reader.finalize()
-            self._base_reader = None
         if self._observer is not None:
             self._observer.stop()
             self._observer.join()
