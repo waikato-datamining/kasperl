@@ -4,3 +4,4 @@ from ._poll_dir import PollDir
 from ._start import Start
 from ._storage import StorageReader
 from ._text_file import TextFileReader
+from ._watch_dir import WatchDir, EVENTS, EVENT_MODIFIED, EVENT_CREATED
