@@ -32,7 +32,7 @@ setup(
     packages=find_namespace_packages(where='src'),
     install_requires=[
         "seppl",
-        "dotenv",
+        "python-dotenv",
         "watchdog",
     ],
     entry_points={
