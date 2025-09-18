@@ -41,15 +41,18 @@ class DeleteFiles(StreamWriter, InputBasedPlaceholderSupporter):
         :param data: the data to write (single record or iterable of records)
         """
         for item in make_list(data):
+            if isinstance(item, list):
+                self.write_stream(item)
+                return
             path = self.session.expand_placeholders(item)
             if not os.path.exists(path):
                 self.logger().warning("File does not exist: %s" % path)
                 continue
-            if os.path.dirname(path):
+            if os.path.isdir(path):
                 self.logger().warning("Not a file: %s" % path)
                 continue
             try:
-                self.logger().info("Removing file: %s" % path)
+                self.logger().info("Deleting file: %s" % path)
                 os.remove(path)
             except:
-                self.logger().error("Failed to remove file: %s" % path, exc_info=True)
+                self.logger().error("Failed to delete file: %s" % path, exc_info=True)

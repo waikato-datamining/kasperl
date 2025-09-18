@@ -138,7 +138,7 @@ class MoveFiles(BatchFilter, InputBasedPlaceholderSupporter):
         # move files
         result = []
         for item in make_list(data):
-            if isinstance(item, str):
+            if isinstance(item, list):
                 for subitem in item:
                     new_path = self._move(subitem, target_path)
                     if new_path is not None:
