@@ -99,6 +99,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.AnnotationsOnlyWriter (mixin)
 * kasperl.api.add_annotations_only_param (function)
 * kasperl.writer.Console
+* kasperl.writer.DeleteFiles
 * kasperl.writer.SendEmail (abstract)
 * kasperl.writer.Storage
 * kasperl.writer.TextFile
