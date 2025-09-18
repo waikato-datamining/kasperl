@@ -1,5 +1,6 @@
 from ._block import Block
 from ._check_duplicate_filenames import CheckDuplicateFilenames, DUPLICATE_ACTIONS, DUPLICATE_ACTION_IGNORE, DUPLICATE_ACTION_WARN, DUPLICATE_ACTION_DROP, DUPLICATE_ACTION_ERROR
+from ._copy_files import CopyFiles
 from ._discard_by_name import DiscardByName
 from ._list_to_sequence import ListToSequence
 from ._max_records import MaxRecords
