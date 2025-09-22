@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from seppl import AnyData
@@ -64,4 +65,6 @@ class PassThrough(BatchFilter):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
+        if self.logger().isEnabledFor(logging.INFO):
+            self.logger().info(str(data))
         return data
