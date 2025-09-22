@@ -134,10 +134,11 @@ class Stop(BatchFilter):
                 msg = "Field '%s': '%s'" % (self.field, comp)
                 self.logger().info(msg)
                 if comp_result:
+                    self.session.stopped = True
                     if self.stop_message is None:
-                        raise Exception(msg)
+                        self.logger().error(msg)
                     else:
-                        raise Exception(self.stop_message)
+                        self.logger().error(self.stop_message)
 
             result.append(item)
 
