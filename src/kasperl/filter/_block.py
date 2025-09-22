@@ -128,6 +128,7 @@ class Block(BatchFilter):
                 comp = str(meta[self.field]) + " " + self.comparison + " " + str(self.value) + " = " + str(comp_result)
                 self.logger().info("Field '%s': '%s'" % (self.field, comp))
                 if comp_result:
+                    self.logger().info("Blocked!")
                     continue
 
             result.append(item)
