@@ -65,6 +65,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 ### Filters
 
 * kasperl.api.parse_filter (function)
+* kasperl.filter.AttachMetaData (abstract)
 * kasperl.filter.Block
 * kasperl.filter.CheckDuplicateFilenames
 * kasperl.filter.CopyFiles
@@ -101,6 +102,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.add_annotations_only_param (function)
 * kasperl.writer.Console
 * kasperl.writer.DeleteFiles
+* kasperl.writer.MetaData (abstract)
 * kasperl.writer.SendEmail (abstract)
 * kasperl.writer.Storage
 * kasperl.writer.TextFile
