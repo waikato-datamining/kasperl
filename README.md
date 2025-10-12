@@ -149,3 +149,9 @@ functions.
 * kasperl.api.perform_find_files
 * kasperl.api.find_files_parser 
 * kasperl.api.find_files
+
+
+## Additional libraries
+
+* [kasperl-plots](https://github.com/waikato-datamining/kasperl-plots)
+* [kasperl-redis](https://github.com/waikato-datamining/kasperl-redis)
