@@ -1,6 +1,6 @@
 import argparse
 from dataclasses import dataclass
-from typing import List, Any
+from typing import List, Any, Optional
 
 
 OPTION_LIST_MAX = 72
@@ -22,6 +22,7 @@ class CommandlineParameter:
     required: bool = False
     default: Any = None
     is_help: bool = False  # whether a help parameter, gets skipped when building the parser
+    nargs: str = None
 
 
 def param_to_short(param: CommandlineParameter) -> str:
@@ -148,13 +149,15 @@ def param_to_parser(parser: argparse.ArgumentParser, param: CommandlineParameter
         kwargs["action"] = param.action
     if param.type is not None:
         kwargs["type"] = param.type
+    if param.nargs is not None:
+        kwargs["nargs"] = param.nargs
     kwargs["required"] = param.required
     kwargs["default"] = param.default
 
     parser.add_argument(*args, **kwargs)
 
 
-def params_to_parser(parser: argparse.ArgumentParser, params: List[CommandlineParameter]):
+def params_to_parser(parser: argparse.ArgumentParser, params: Optional[List[CommandlineParameter]]):
     """
     Adds all the parameters to the parser.
     Skips parameters that are flagged with "is_help=True", as they are handled separately.
@@ -164,5 +167,7 @@ def params_to_parser(parser: argparse.ArgumentParser, params: List[CommandlinePa
     :param params: the parameters to add
     :type params: list
     """
+    if params is None:
+        return
     for param in params:
         param_to_parser(parser, param)
