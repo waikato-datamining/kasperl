@@ -9,6 +9,7 @@ from wai.logging import init_logging, set_logging_level, add_logging_level
 from seppl import split_cmdline, Plugin, load_args
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from ._generator import compile_generator_vars_list
+from ._help import CommandlineParameter, params_to_parser
 
 
 PARAM_EXEC_FORMAT = "--exec_format"
@@ -142,7 +143,8 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
 
 def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: str, description: Optional[str],
                                convert_prog: str, convert_func, generators_plugins: Dict[str, Plugin],
-                               logger: logging.Logger):
+                               logger: logging.Logger, additional_params: Optional[List[CommandlineParameter]] = None,
+                               pre_exec=None, post_exec=None):
     """
     The main method for parsing command-line arguments.
 
@@ -161,6 +163,10 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     :type generators_plugins: dict
     :param logger: the logger instance to use
     :type logger: logging.Logger
+    :param additional_params: the additional parameters for the parser
+    :type additional_params: list
+    :param pre_exec: the optional method to execute before the pipeline executions, gets parsed args namespace as only argument
+    :param post_exec: the optional method to execute after the pipeline got executed, gets parsed args namespace as only argument
     """
     init_logging(env_var=env_var)
 
@@ -185,6 +191,7 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute; see '" + PARAM_EXEC_FORMAT + "' option.", nargs=argparse.REMAINDER)
     if logger is not None:
         add_logging_level(parser, short_opt=None, long_opt="--exec_logging_level")
+    params_to_parser(parser, additional_params)
 
     parsed = parser.parse_args(args=args)
 
@@ -206,6 +213,14 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
                 print(msg)
             load_user_defined_placeholders(parsed.exec_placeholders)
 
+    # custom pre-execution hook?
+    if pre_exec is not None:
+        pre_exec(parsed)
+
     execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.exec_generator, generators_plugins,
                      pipeline_format=parsed.exec_format, dry_run=parsed.exec_dry_run, prefix=parsed.exec_prefix,
                      logger=logger)
+
+    # custom post-execution hook?
+    if post_exec is not None:
+        post_exec(parsed)
