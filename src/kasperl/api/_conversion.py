@@ -239,7 +239,8 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
 def perform_conversion(env_var: Optional[str], args: List[str], prog: str, description: str,
                        readers: Dict[str, Plugin], filters: Dict[str, Plugin], writers: Dict[str, Plugin],
                        aliases: List[str] = None, require_reader: bool = True, require_writer: bool = True,
-                       generate_plugin_usage=None, additional_params: Optional[List[CommandlineParameter]] = None):
+                       generate_plugin_usage=None, additional_params: Optional[List[CommandlineParameter]] = None,
+                       pre_initialize=None, post_finalize=None):
     """
     Parses the command-line arguments and performs the conversion.
 
@@ -268,8 +269,8 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
     :param generate_plugin_usage: the method for generating the plugin usage
     :param additional_params: the additional parameters for the parser
     :type additional_params: list
-    :return: tuple of (reader, filter, writer, session), the filter can be None
-    :rtype: tuple
+    :param pre_initialize: optional method to execute before the plugins get initialized, takes the session object as only parameter
+    :param post_finalize: optional method to execute after the plugins have been finalized, takes the session object as only parameter
     """
     init_logging(env_var=env_var)
     _args = sys.argv[1:] if (args is None) else args
@@ -279,7 +280,7 @@ def perform_conversion(env_var: Optional[str], args: List[str], prog: str, descr
             aliases=aliases, require_reader=require_reader, require_writer=require_writer,
             generate_plugin_usage=generate_plugin_usage, additional_params=additional_params)
         session.logger.info("options: %s" % str(_args))
-        execute(reader, filter_, writer, session)
+        execute(reader, filter_, writer, session, pre_initialize=pre_initialize, post_finalize=post_finalize)
     except Exception:
         traceback.print_exc()
         print("options: %s" % str(_args), file=sys.stderr)
