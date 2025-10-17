@@ -253,7 +253,8 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             # assemble email
             message = MIMEMultipart()
             message["From"] = self.session.expand_placeholders(self.email_from)
-            message["To"] = ", ".join(self.session.expand_placeholders(self.email_to))
+            email_to = [self.session.expand_placeholders(x) for x in self.email_to]
+            message["To"] = ", ".join(email_to)
             message["Subject"] = self.session.expand_placeholders(self.subject)
             message.attach(MIMEText(self.session.expand_placeholders(self.body), "plain"))
             self._attach_items(message, make_list(data))
