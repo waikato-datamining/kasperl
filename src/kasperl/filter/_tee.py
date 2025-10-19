@@ -3,10 +3,12 @@ import argparse
 from typing import List, Dict
 
 from wai.logging import LOGGING_WARNING
-from seppl import split_args, split_cmdline, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
-from seppl.io import Writer, BatchWriter, StreamWriter, BatchFilter, MultiFilter
+
 from kasperl.api import make_list, flatten_list, compare_values, \
-    COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
+    COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP, \
+    PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, load_pipeline
+from seppl import split_args, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
+from seppl.io import Writer, BatchWriter, StreamWriter, BatchFilter, MultiFilter
 
 
 class Tee(BatchFilter, abc.ABC):
@@ -14,14 +16,16 @@ class Tee(BatchFilter, abc.ABC):
     Forwards the data coming through to the sub-flow.
     """
 
-    def __init__(self, sub_flow: List[Plugin] = None,
+    def __init__(self, sub_flow: str = None, sub_flow_format: str = None,
                  field: str = None, comparison: str = COMPARISON_EQUAL, value=None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
-        :param sub_flow: the filter(s)/writer to forward the data to
-        :type sub_flow: list
+        :param sub_flow: the command-line of the filter(s)/writer to execute
+        :type sub_flow: str
+        :param sub_flow_format: the format the sub_flow is in
+        :type sub_flow_format: str
         :param field: the name of the meta-data field to perform the comparison on
         :type field: str
         :param comparison: the comparison to perform
@@ -34,9 +38,11 @@ class Tee(BatchFilter, abc.ABC):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.sub_flow = sub_flow
+        self.sub_flow_format = sub_flow_format
         self.field = field
         self.value = value
         self.comparison = comparison
+        self._sub_flow = None
         self._filter = None
         self._writer = None
         self._data_buffer = None
@@ -87,7 +93,8 @@ class Tee(BatchFilter, abc.ABC):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-f", "--sub_flow", type=str, default=None, help="The command-line defining the subflow (filter(s)/writer).")
+        parser.add_argument("-f", "--sub_flow", type=str, default=None, help="The subflow to execute (filter(s)/writer).")
+        parser.add_argument("-F", "--sub_flow_format", choices=PIPELINE_FORMATS, default=PIPELINE_FORMAT_CMDLINE, help="The format of the pipeline.")
         parser.add_argument("--field", type=str, help="The meta-data field to use in the comparison", default=None, required=False)
         parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
@@ -114,14 +121,13 @@ class Tee(BatchFilter, abc.ABC):
         """
         raise NotImplementedError()
 
-    def _parse_commandline(self, cmdline: str) -> List[Plugin]:
+    def _parse_sub_flow(self) -> List[Plugin]:
         """
         Parses the command-line and returns the list of plugins it represents.
         Raises an exception in case of an invalid sub-flow.
         
-        :param cmdline: the command-line to parse
-        :type cmdline: str 
-        :return: 
+        :return: the list of plugins
+        :rtype: list
         """
         from seppl import args_to_objects
 
@@ -129,7 +135,8 @@ class Tee(BatchFilter, abc.ABC):
         valid = dict()
         valid.update(self._available_filters())
         valid.update(self._available_writers())
-        args = split_args(split_cmdline(cmdline), list(valid.keys()))
+        pipeline = load_pipeline(self.sub_flow, self.sub_flow_format, logger=self.logger())
+        args = split_args(pipeline, list(valid.keys()))
         return args_to_objects(args, valid, allow_global_options=False)
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -140,9 +147,8 @@ class Tee(BatchFilter, abc.ABC):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.sub_flow = None
-        if ns.sub_flow is not None:
-            self.sub_flow = self._parse_commandline(ns.sub_flow)
+        self.sub_flow = ns.sub_flow
+        self.sub_flow_format = ns.sub_flow_format
         self.field = ns.field
         self.value = ns.value
         self.comparison = ns.comparison
@@ -154,13 +160,15 @@ class Tee(BatchFilter, abc.ABC):
         super().initialize()
 
         if self.sub_flow is None:
-            self.sub_flow = []
+            self._sub_flow = []
+        else:
+            self._sub_flow = self._parse_sub_flow()
 
-        if len(self.sub_flow) > 0:
+        if len(self._sub_flow) > 0:
             self._filter = None
             self._writer = None
             filters = []
-            for plugin in self.sub_flow:
+            for plugin in self._sub_flow:
                 if isinstance(plugin, BatchFilter):
                     filters.append(plugin)
                 elif isinstance(plugin, Writer):
