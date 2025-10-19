@@ -22,9 +22,9 @@ class SubProcess(BatchFilter, abc.ABC):
         """
         Initializes the filter.
 
-        :param sub_flow: the command-line of the filter(s) to execute
+        :param sub_flow: the command-line/pipeline file with the filter(s) to execute
         :type sub_flow: str
-        :param sub_flow_format: the format the sub_flow is in
+        :param sub_flow_format: the format the sub-flow is in
         :type sub_flow_format: str
         :param field: the name of the meta-data field to perform the comparison on
         :type field: str

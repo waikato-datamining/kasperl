@@ -22,7 +22,7 @@ class Trigger(BatchFilter, abc.ABC):
         """
         Initializes the filter.
 
-        :param sub_flow: the command-line of the reader/filter(s)/writer to execute
+        :param sub_flow: the command-line/pipeline file with the reader/filter(s)/writer to execute
         :type sub_flow: str
         :param sub_flow_format: the format the sub_flow is in
         :type sub_flow_format: str
