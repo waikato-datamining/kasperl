@@ -10,7 +10,7 @@ from kasperl.api import make_list, flatten_list
 
 class StorageUpdater(BatchFilter):
     """
-    Renames files using a user-supplied format.
+    Stores the objects passing through in internal storage using the specified name.
     """
 
     def __init__(self, storage_name: str = None, logger_name: str = None, logging_level: str = LOGGING_WARNING):
