@@ -4,7 +4,7 @@ from typing import List, Dict
 
 from wai.logging import LOGGING_WARNING
 
-from kasperl.api import make_list, flatten_list, compare_values, \
+from kasperl.api import make_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP, \
     PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, load_pipeline
 from seppl import split_args, Plugin, AnyData, Initializable, MetaDataHandler, init_initializable
@@ -201,7 +201,6 @@ class Tee(BatchFilter, abc.ABC):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
-        result = []
         for item in make_list(data):
             # evaluate expression?
             meta = None
@@ -231,9 +230,7 @@ class Tee(BatchFilter, abc.ABC):
                 else:
                     raise Exception("Unhandled type of writer: %s" % str(type(self._writer)))
 
-            result.append(item)
-
-        return flatten_list(result)
+        return data
 
     def finalize(self):
         """
