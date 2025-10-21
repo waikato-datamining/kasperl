@@ -26,13 +26,18 @@ IMAP_ENVS = [
     IMAP_PW,
 ]
 
-DEFAULT_POLL_WAIT = 60.0
+DEFAULT_POLL_WAIT = 30.0
+
+DEFAULT_POLL_WAIT_SLOW = 180.0
+
+DEFAULT_POLL_COUNT = 10
 
 
 class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
 
     def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
-                 regexp: str = None, output_dir: str = None, poll_wait: float = None, poll_once: bool = None,
+                 regexp: str = None, output_dir: str = None, poll_wait: float = None,
+                 poll_count: int = None, poll_wait_slow: float = None, max_poll: int = None,
                  from_placeholder: str = None, subject_placeholder: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
@@ -52,8 +57,12 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :type output_dir: str
         :param poll_wait: the seconds to wait between polls
         :type poll_wait: float
-        :param poll_once: whether to poll only once rather than continuously
-        :type poll_once: bool
+        :param poll_count: the number of times to use poll_wait before switching to poll_wait_slow
+        :type poll_count: int
+        :param poll_wait_slow: the seconds to wait between polls (during downtime)
+        :type poll_wait_slow: float
+        :param max_poll: the number of times to poll (<= 0 for infinite)
+        :type max_poll: int
         :param from_placeholder: the placeholder name for storing the FROM email address under
         :type from_placeholder: str
         :param subject_placeholder: the placeholder name for storing the SUBJECT under
@@ -71,12 +80,15 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.regexp = regexp
         self.output_dir = output_dir
         self.poll_wait = poll_wait
-        self.poll_once = poll_once
+        self.poll_count = poll_count
+        self.poll_wait_slow = poll_wait_slow
+        self.max_poll = max_poll
         self.from_placeholder = from_placeholder
-        self.subject_placeholder= subject_placeholder
+        self.subject_placeholder = subject_placeholder
         self._dotenv_loaded = False
         self._server = None
         self._polled = None
+        self._empty_poll_count = None
 
     def name(self) -> str:
         """
@@ -95,7 +107,10 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :rtype: str
         """
         return "Retrieves emails from the specified IMAP folder, saves the attachments " \
-               "in the specified folder and forwards the file names of the saved attachments as list."
+               "in the specified folder and forwards the file names of the saved attachments as list. " \
+               "If the number of polls without any new messages reaches the 'poll_count' threshold, " \
+               "the polling switches from the 'poll_wait' interval to 'poll_wait_slow'. It will " \
+               "automatically reset the next time a new message is encountered."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
@@ -111,8 +126,10 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         parser.add_argument("-R", "--mark_as_read", action="store_true", help="Whether to mark the emails as read after retrieval.", required=False)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
         parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
-        parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=DEFAULT_POLL_WAIT)
-        parser.add_argument("-O", "--poll_once", action="store_true", help="Polls the mailbox only once rather than continuously.")
+        parser.add_argument("-w", "--poll_wait", metavar="SECONDS", type=float, help="The poll interval in seconds", required=False, default=DEFAULT_POLL_WAIT)
+        parser.add_argument("-W", "--poll_wait_slow", metavar="SECONDS", type=float, help="The poll interval in seconds during slow operation", required=False, default=DEFAULT_POLL_WAIT_SLOW)
+        parser.add_argument("-c", "--poll_count", metavar="THRESHOLD", type=int, help="The maximum number of 'empty' polls that are allowed before switching from 'poll_wait' to 'poll_wait_slow'.", required=False, default=DEFAULT_POLL_COUNT)
+        parser.add_argument("-m", "--max_poll", metavar="MAX", type=int, help="The maximum number of times to poll the folder; use <= for infinite polling.")
         parser.add_argument("-F", "--from_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the FROM email address under, without curly brackets.", required=False, default=None)
         parser.add_argument("-S", "--subject_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the SUBJECT under, without curly brackets.", required=False, default=None)
         return parser
@@ -132,7 +149,9 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.regexp = ns.regexp
         self.output_dir = ns.output_dir
         self.poll_wait = ns.poll_wait
-        self.poll_once = ns.poll_once
+        self.poll_wait_slow = ns.poll_wait_slow
+        self.poll_count = ns.poll_count
+        self.max_poll = ns.max_poll
         self.from_placeholder = ns.from_placeholder
         self.subject_placeholder = ns.subject_placeholder
         self._dotenv_loaded = False
@@ -165,11 +184,22 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         if self.poll_wait is None:
             self.poll_wait = DEFAULT_POLL_WAIT
         if self.poll_wait < 0:
-            self.logger().warning("Invalid poll wait '%s', falling back to default of %s!" % (str(self.poll_wait), str(DEFAULT_POLL_WAIT)))
+            self.logger().warning("Invalid poll wait '%s', falling back to default of '%s'!" % (str(self.poll_wait), str(DEFAULT_POLL_WAIT)))
             self.poll_wait = DEFAULT_POLL_WAIT
-        if self.poll_once is None:
-            self.poll_once = False
+        if self.poll_wait_slow is None:
+            self.poll_wait_slow = DEFAULT_POLL_WAIT_SLOW
+        if self.poll_wait_slow < 0:
+            self.logger().warning("Invalid (slow) poll wait '%s', falling back to default of '%s'!" % (str(self.poll_wait_slow), str(DEFAULT_POLL_WAIT_SLOW)))
+            self.poll_wait_slow = DEFAULT_POLL_WAIT_SLOW
+        if self.poll_wait_slow < self.poll_wait:
+            self.logger().warning("Slow poll wait is lower than normal poll wait, adjusting to '%s' for both!" % str(self.poll_wait))
+            self.poll_wait_slow = self.poll_wait
+        if self.poll_count is None:
+            self.poll_count = DEFAULT_POLL_COUNT
+        if self.max_poll is None:
+            self.max_poll = -1
         self._polled = 0
+        self._empty_poll_count = 0
 
     def read(self) -> Iterable:
         """
@@ -194,9 +224,15 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                 self.logger().info("Loading .env: %s" % path)
                 load_dotenv(dotenv_path=path)
 
-        if self.poll_wait > 0:
-            self.logger().info("Waiting for %s seconds before polling" % str(self.poll_wait))
-            sleep(self.poll_wait)
+        poll_wait = self.poll_wait
+        # slow down polling?
+        if self._empty_poll_count > self.poll_count:
+            self.logger().info("Number of empty polls reached threshold (%s), switching to slow poll (%ss)." % (str(self.poll_count), str(self.poll_wait_slow)))
+            poll_wait = self.poll_wait_slow
+        # wait before polling?
+        if poll_wait > 0:
+            self.logger().info("Waiting for %s seconds before polling" % str(poll_wait))
+            sleep(poll_wait)
 
         try:
             # connect
@@ -228,7 +264,13 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                     msg_list = messages[0]
                 if len(msg_list) == 0:
                     self.logger().info("No messages found.")
+                    self._empty_poll_count += 1
                     return None
+
+                # reset counter
+                if self._empty_poll_count > self.poll_count:
+                    self.logger().info("Switching back to normal poll wait (%ss)." % str(self.poll_wait))
+                self._empty_poll_count = 0
 
                 msg_ids = msg_list.split(' ')
                 self.logger().info("# of messages found: %d" % len(msg_ids))
@@ -289,13 +331,15 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :return: True if finished
         :rtype: bool
         """
-        return self.poll_once and (self._polled > 0)
+        return (self.max_poll > 0) and (self._polled >= self.max_poll)
 
     def finalize(self):
         """
         Finishes the processing, e.g., for closing files or databases.
         """
         super().finalize()
+        if self.max_poll > 0:
+            self.logger().info("# of polls: %s" % str(self._polled))
         if self._server is not None:
             try:
                 self._server.close()
