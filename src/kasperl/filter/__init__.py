@@ -20,7 +20,7 @@ from ._set_metadata import SetMetaData
 from ._set_placeholder import SetPlaceholder
 from ._split_records import SplitRecords
 from ._stop import Stop
-from ._storage import StorageUpdater
+from ._storage import StorageUpdater, DeleteStorage
 from ._sub_process import SubProcess
 from ._tee import Tee
 from ._trigger import Trigger

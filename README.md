@@ -69,6 +69,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.Block
 * kasperl.filter.CheckDuplicateFilenames
 * kasperl.filter.CopyFiles
+* kasperl.filter.DeleteStorage
 * kasperl.filter.DiscardByName
 * kasperl.filter.DiscardNegatives
 * kasperl.filter.ListToSequence
