@@ -54,6 +54,14 @@ class AnnotationHandler:
         """
         raise NotImplementedError()
 
+    def set_annotation(self, ann: Any):
+        """
+        Sets the annotations.
+
+        :param ann: the annotations
+        """
+        raise NotImplementedError()
+
 
 class NameSupporter:
     """
