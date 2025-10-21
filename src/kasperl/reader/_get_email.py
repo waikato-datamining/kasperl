@@ -26,11 +26,13 @@ IMAP_ENVS = [
     IMAP_PW,
 ]
 
+DEFAULT_POLL_WAIT = 60.0
+
 
 class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
 
     def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
-                 regexp: str = None, output_dir: str = None, poll_wait: float = None,
+                 regexp: str = None, output_dir: str = None, poll_wait: float = None, poll_once: bool = None,
                  from_placeholder: str = None, subject_placeholder: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
@@ -50,6 +52,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :type output_dir: str
         :param poll_wait: the seconds to wait between polls
         :type poll_wait: float
+        :param poll_once: whether to poll only once rather than continuously
+        :type poll_once: bool
         :param from_placeholder: the placeholder name for storing the FROM email address under
         :type from_placeholder: str
         :param subject_placeholder: the placeholder name for storing the SUBJECT under
@@ -67,10 +71,12 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.regexp = regexp
         self.output_dir = output_dir
         self.poll_wait = poll_wait
+        self.poll_once = poll_once
         self.from_placeholder = from_placeholder
         self.subject_placeholder= subject_placeholder
         self._dotenv_loaded = False
         self._server = None
+        self._polled = None
 
     def name(self) -> str:
         """
@@ -105,7 +111,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         parser.add_argument("-R", "--mark_as_read", action="store_true", help="Whether to mark the emails as read after retrieval.", required=False)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
         parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
-        parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=60.0)
+        parser.add_argument("-w", "--poll_wait", type=float, help="The poll interval in seconds", required=False, default=DEFAULT_POLL_WAIT)
+        parser.add_argument("-O", "--poll_once", action="store_true", help="Polls the mailbox only once rather than continuously.")
         parser.add_argument("-F", "--from_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the FROM email address under, without curly brackets.", required=False, default=None)
         parser.add_argument("-S", "--subject_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the SUBJECT under, without curly brackets.", required=False, default=None)
         return parser
@@ -125,6 +132,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.regexp = ns.regexp
         self.output_dir = ns.output_dir
         self.poll_wait = ns.poll_wait
+        self.poll_once = ns.poll_once
         self.from_placeholder = ns.from_placeholder
         self.subject_placeholder = ns.subject_placeholder
         self._dotenv_loaded = False
@@ -155,7 +163,13 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         if self.output_dir is None:
             raise Exception("No output directory specified!")
         if self.poll_wait is None:
-            self.poll_wait = 60.0
+            self.poll_wait = DEFAULT_POLL_WAIT
+        if self.poll_wait < 0:
+            self.logger().warning("Invalid poll wait '%s', falling back to default of %s!" % (str(self.poll_wait), str(DEFAULT_POLL_WAIT)))
+            self.poll_wait = DEFAULT_POLL_WAIT
+        if self.poll_once is None:
+            self.poll_once = False
+        self._polled = 0
 
     def read(self) -> Iterable:
         """
@@ -180,8 +194,9 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                 self.logger().info("Loading .env: %s" % path)
                 load_dotenv(dotenv_path=path)
 
-        self.logger().info("Waiting for %s seconds before polling" % str(self.poll_wait))
-        sleep(self.poll_wait)
+        if self.poll_wait > 0:
+            self.logger().info("Waiting for %s seconds before polling" % str(self.poll_wait))
+            sleep(self.poll_wait)
 
         try:
             # connect
@@ -190,6 +205,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                 self._server = imaplib.IMAP4_SSL(os.getenv(IMAP_HOST), port=int(os.getenv(IMAP_PORT)))
                 self.logger().info("Logging in...")
                 self._server.login(os.getenv(IMAP_USER), os.getenv(IMAP_PW))
+
+            self._polled += 1
 
             # select folder
             self.logger().info("Selecting folder: %s" % self.folder)
@@ -272,7 +289,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :return: True if finished
         :rtype: bool
         """
-        return False
+        return self.poll_once and (self._polled > 0)
 
     def finalize(self):
         """
