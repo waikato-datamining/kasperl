@@ -32,7 +32,7 @@ SMTP_ENVS = [
 class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
 
     def __init__(self, dotenv_path: str = None, email_from: str = None, email_to: Union[str, List[str]] = None,
-                 subject: str = None, body: str = None,
+                 subject: str = None, body: str = None, body_file: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the writer.
@@ -58,6 +58,8 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         self.email_to = email_to
         self.subject = subject
         self.body = body
+        self.body_file = body_file
+        self._body = None
         self._dotenv_loaded = False
         self._server = None
 
@@ -91,7 +93,8 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         parser.add_argument("-f", "--email_from", metavar="EMAIL", type=str, help="The email address to use for FROM; placeholders get automatically expanded.", default=None, required=True)
         parser.add_argument("-t", "--email_to", metavar="EMAIL", type=str, help="The email address(es) to send the email TO; placeholders get automatically expanded.", default=None, required=True, nargs="+")
         parser.add_argument("-s", "--subject", metavar="SUBJECT", type=str, help="The SUBJECT for the email; placeholders get automatically expanded.", default=None, required=False)
-        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use; placeholders get automatically expanded.", default=None, required=False)
+        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use, splits on '\n' strings (not newlines!); placeholders get automatically expanded.", default=None, required=False)
+        parser.add_argument("-B", "--body_file", metavar="FILE", type=str, help="The file with the email body to use; placeholders get automatically expanded.", default=None, required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -107,22 +110,35 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         self.email_to = ns.email_to
         self.subject = ns.subject
         self.body = ns.body
+        self.body_file = ns.body_file
 
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
+        self._dotenv_loaded = False
+        self._server = None
         if self.email_from is None:
             raise Exception("No FROM address specified!")
         if self.email_to is None:
             raise Exception("At least one TO address must be specified!")
         if self.subject is None:
             self.subject = ""
-        if self.body is None:
-            self.body = ""
-        self._dotenv_loaded = False
-        self._server = None
+        self._body = None
+        if self.body_file is not None:
+            path = self.session.expand_placeholders(self.body_file)
+            if not os.path.exists(path):
+                raise Exception("File with email body does not exist: %s" % path)
+            if os.path.isdir(path):
+                raise Exception("File with email body points to a directory: %s" % path)
+            self.logger().info("Loading email body file: %s" % path)
+            with open(path, "r") as fp:
+                self._body = [x.strip() for x in fp.readlines()]
+        if (self._body is None) and (self.body is not None):
+            self._body = self.body.split("\\n")
+        if self._body is None:
+            self._body = []
 
     def accepts(self) -> List:
         """
@@ -256,7 +272,8 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             email_to = [self.session.expand_placeholders(x) for x in self.email_to]
             message["To"] = ", ".join(email_to)
             message["Subject"] = self.session.expand_placeholders(self.subject)
-            message.attach(MIMEText(self.session.expand_placeholders(self.body), "plain"))
+            body = [self.session.expand_placeholders(x) for x in self._body]
+            message.attach(MIMEText("\n".join(body), "plain"))
             self._attach_items(message, make_list(data))
             self._server.send_message(message)
             self.logger().info("Email sent successfully!")
