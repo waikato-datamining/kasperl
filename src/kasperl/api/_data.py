@@ -1,5 +1,5 @@
 import types
-from typing import List, Any
+from typing import List, Any, Optional
 
 
 def make_list(data, cls=list) -> List:
@@ -46,7 +46,7 @@ class AnnotationHandler:
         """
         raise NotImplementedError()
 
-    def get_annotation(self) -> Any:
+    def get_annotation(self) -> Optional[Any]:
         """
         Returns the annotations.
 
@@ -54,7 +54,7 @@ class AnnotationHandler:
         """
         raise NotImplementedError()
 
-    def set_annotation(self, ann: Any):
+    def set_annotation(self, ann: Optional[Any]):
         """
         Sets the annotations.
 
