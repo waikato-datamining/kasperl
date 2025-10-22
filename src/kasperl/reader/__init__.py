@@ -1,4 +1,4 @@
-from ._get_email import GetEmail
+from ._get_email import GetEmail, MESSAGE_ACTIONS, MESSAGE_ACTION_NONE, MESSAGE_ACTION_READ, MESSAGE_ACTION_DELETE
 from ._list_files import ListFiles
 from ._poll_dir import PollDir, POLL_ACTIONS, POLL_ACTION_NOTHING, POLL_ACTION_MOVE, POLL_ACTION_DELETE
 from ._start import Start

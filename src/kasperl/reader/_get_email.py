@@ -33,9 +33,19 @@ DEFAULT_POLL_WAIT_SLOW = 180.0
 DEFAULT_POLL_COUNT = 10
 
 
+MESSAGE_ACTION_NONE = "none"
+MESSAGE_ACTION_READ = "read"
+MESSAGE_ACTION_DELETE = "delete"
+MESSAGE_ACTIONS = [
+    MESSAGE_ACTION_NONE,
+    MESSAGE_ACTION_READ,
+    MESSAGE_ACTION_DELETE,
+]
+
+
 class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
 
-    def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, mark_as_read: bool = None,
+    def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, action: str = None,
                  regexp: str = None, output_dir: str = None, poll_wait: float = None,
                  poll_count: int = None, poll_wait_slow: float = None, max_poll: int = None,
                  from_placeholder: str = None, subject_placeholder: str = None,
@@ -49,8 +59,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :type folder: str
         :param only_unseen: whether to list only unseen emails
         :type only_unseen: bool
-        :param mark_as_read: whether to mark the retrieved emails as seen
-        :type mark_as_read: bool
+        :param action: the action to apply to the retrieved emails
+        :type action: str
         :param regexp: the regular expression that the attachments must match, ignored if None
         :type regexp: str
         :param output_dir: the path of the text file to load
@@ -76,7 +86,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.dotenv_path = dotenv_path
         self.folder = folder
         self.only_unseen = only_unseen
-        self.mark_as_read = mark_as_read
+        self.action = action
         self.regexp = regexp
         self.output_dir = output_dir
         self.poll_wait = poll_wait
@@ -124,7 +134,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the IMAP environment variables form (" + "|".join(IMAP_ENVS) + "); tries to load .env from the current directory if not specified; " + placeholder_list(obj=self), required=False, default=None)
         parser.add_argument("-f", "--folder", metavar="FOLDER", type=str, help="The IMAP folder to obtain emails from.", required=False, default="INBOX")
         parser.add_argument("-u", "--only_unseen", action="store_true", help="Whether to only retrieve unseen/new emails.", required=False)
-        parser.add_argument("-R", "--mark_as_read", action="store_true", help="Whether to mark the emails as read after retrieval.", required=False)
+        parser.add_argument("-a", "--action", choices=MESSAGE_ACTIONS, default=MESSAGE_ACTION_NONE, help="The action to apply to the retrieved emails.", required=False)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
         parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
         parser.add_argument("-w", "--poll_wait", metavar="SECONDS", type=float, help="The poll interval in seconds", required=False, default=DEFAULT_POLL_WAIT)
@@ -146,7 +156,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.dotenv_path = ns.dotenv_path
         self.folder = ns.folder
         self.only_unseen = ns.only_unseen
-        self.mark_as_read = ns.mark_as_read
+        self.action = ns.action
         self.regexp = ns.regexp
         self.output_dir = ns.output_dir
         self.poll_wait = ns.poll_wait
@@ -176,8 +186,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
             self.folder = "INBOX"
         if self.only_unseen is None:
             self.only_unseen = False
-        if self.mark_as_read is None:
-            self.mark_as_read = True
+        if self.action is None:
+            self.action = MESSAGE_ACTION_NONE
         if self.regexp is None:
             self.regexp = ""
         if self.output_dir is None:
@@ -310,12 +320,21 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                                                 fp.write(part.get_payload(decode=True))
                                             files.append(output_file)
 
-                                # mark as read?
-                                if self.mark_as_read:
+                                # message action?
+                                if self.action == MESSAGE_ACTION_READ:
                                     self.logger().info("Marking message as read: %s" % msg_id)
                                     status, data = self._server.uid('store', msg_id, '+FLAGS', '(\\Seen)')
                                     if status != 'OK':
                                         self.logger().warning("Failed to mark message as read: %s" % msg_id)
+                                elif self.action == MESSAGE_ACTION_DELETE:
+                                    self.logger().info("Deleting message: %s" % msg_id)
+                                    status, data = self._server.store(msg_id, '+FLAGS', '\\Deleted')
+                                    if status != 'OK':
+                                        self.logger().warning("Failed to delete message: %s" % msg_id)
+                                elif self.action == MESSAGE_ACTION_NONE:
+                                    pass
+                                else:
+                                    self.logger().warning("Unsupported message action: %s" % self.action)
 
                     # forward file names of downloaded attachments
                     if len(files) > 0:
