@@ -89,6 +89,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self._server = None
         self._polled = None
         self._empty_poll_count = None
+        self._slow_message_displayed = None
 
     def name(self) -> str:
         """
@@ -200,6 +201,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
             self.max_poll = -1
         self._polled = 0
         self._empty_poll_count = 0
+        self._slow_message_displayed = False
 
     def read(self) -> Iterable:
         """
@@ -227,7 +229,9 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         poll_wait = self.poll_wait
         # slow down polling?
         if self._empty_poll_count > self.poll_count:
-            self.logger().info("Number of empty polls reached threshold (%s), switching to slow poll (%ss)." % (str(self.poll_count), str(self.poll_wait_slow)))
+            if not self._slow_message_displayed:
+                self._slow_message_displayed = True
+                self.logger().info("Number of empty polls reached threshold (%s), switching to slow poll (%ss)." % (str(self.poll_count), str(self.poll_wait_slow)))
             poll_wait = self.poll_wait_slow
         # wait before polling?
         if poll_wait > 0:
@@ -271,6 +275,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                 if self._empty_poll_count > self.poll_count:
                     self.logger().info("Switching back to normal poll wait (%ss)." % str(self.poll_wait))
                 self._empty_poll_count = 0
+                self._slow_message_displayed = False
 
                 msg_ids = msg_list.split(' ')
                 self.logger().info("# of messages found: %d" % len(msg_ids))
