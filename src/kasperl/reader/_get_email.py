@@ -347,6 +347,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                         yield files
         except:
             self.logger().error("Failed to get emails!", exc_info=True)
+            self._server = None
 
     def has_finished(self) -> bool:
         """
