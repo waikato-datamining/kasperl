@@ -31,7 +31,7 @@ setup(
     },
     packages=find_namespace_packages(where='src'),
     install_requires=[
-        "seppl",
+        "seppl>=0.3.0",
         "python-dotenv",
         "watchdog",
     ],
