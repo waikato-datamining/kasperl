@@ -53,25 +53,26 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.parse_reader (function)
 * kasperl.api.AnnotationsOnlyReader (mixin)
 * kasperl.api.add_annotations_only_reader_param (function)
+* kasperl.api.MetaFileReader (abstract)
 * kasperl.reader.GetEmail
 * kasperl.reader.ListFiles
-* kasperl.reader.MetaFileReader (abstract)
 * kasperl.reader.PollDir (abstract)
 * kasperl.reader.Start
-* kasperl.reader.Storage
+* kasperl.reader.StorageReader
 * kasperl.reader.TextFile
 * kasperl.reader.WatchDir (abstract)
 
 ### Filters
 
 * kasperl.api.parse_filter (function)
+* kasperl.filter.AnnotationsFromStorage
+* kasperl.filter.AnnotationsToStorage
 * kasperl.filter.AttachMetaData (abstract)
 * kasperl.filter.Block
 * kasperl.filter.CheckDuplicateFilenames
 * kasperl.filter.CopyFiles
 * kasperl.filter.DeleteStorage
 * kasperl.filter.DiscardByName
-* kasperl.filter.DiscardNegatives
 * kasperl.filter.ListToSequence
 * kasperl.filter.MaxRecords
 * kasperl.filter.MetaData
@@ -87,7 +88,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.SetPlaceholder
 * kasperl.filter.SplitRecords
 * kasperl.filter.Stop
-* kasperl.filter.Storage
+* kasperl.filter.StorageUpdater
 * kasperl.filter.SubProcess (abstract)
 * kasperl.filter.Tee (abstract)
 * kasperl.filter.Trigger (abstract)
@@ -105,7 +106,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.writer.DeleteFiles
 * kasperl.writer.MetaData (abstract)
 * kasperl.writer.SendEmail (abstract)
-* kasperl.writer.Storage
+* kasperl.writer.StorageWriter
 * kasperl.writer.TextFile
 
 ### Other
