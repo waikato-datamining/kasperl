@@ -25,7 +25,8 @@ def strip_suffix(path: str, suffix: str) -> str:
     return path
 
 
-def locate_file(path: str, ext: Union[str, List[str]], rel_path: str = None, suffix: str = None) -> List[str]:
+def locate_file(path: str, ext: Union[str, List[str]], rel_path: str = None, suffix: str = None,
+                image_prefix: str = None, annotation_prefix: str = None) -> List[str]:
     """
     Tries to locate the associate files for the given path by replacing its extension by the provided ones.
 
@@ -37,6 +38,10 @@ def locate_file(path: str, ext: Union[str, List[str]], rel_path: str = None, suf
     :type suffix: str
     :param rel_path: the relative path to the annotation to use for looking for associated files, ignored if None
     :type rel_path: str
+    :param image_prefix: the name prefix for the images, eg, image_
+    :type image_prefix: str
+    :param annotation_prefix: the name prefix for the annotations, e.g., gt_
+    :type annotation_prefix: str
     :return: the located files
     :rtype: list
     """
@@ -45,10 +50,16 @@ def locate_file(path: str, ext: Union[str, List[str]], rel_path: str = None, suf
         parent_path = os.path.dirname(path)
         name = os.path.basename(path)
         path = os.path.join(parent_path, rel_path, name)
+    if (image_prefix is not None) and (annotation_prefix is not None):
+        dir_name = os.path.dirname(path)
+        name = os.path.basename(path)
+        if name.startswith(annotation_prefix):
+            name = image_prefix + name[len(annotation_prefix):]
+        path = os.path.join(dir_name, name)
     path = strip_suffix(path, suffix)
-    noext = os.path.splitext(path)[0]
+    no_ext = os.path.splitext(path)[0]
     for current in ext:
-        path = noext + current
+        path = no_ext + current
         if os.path.exists(path):
             result.append(path)
     return result
