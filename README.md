@@ -54,6 +54,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.AnnotationsOnlyReader (mixin)
 * kasperl.api.add_annotations_only_reader_param (function)
 * kasperl.api.MetaFileReader (abstract)
+* kasperl.reader.Cron
 * kasperl.reader.GetEmail
 * kasperl.reader.ListFiles
 * kasperl.reader.PollDir (abstract)

@@ -34,6 +34,7 @@ setup(
         "seppl>=0.3.0",
         "python-dotenv",
         "watchdog",
+        "croniter",
     ],
     entry_points={
         "class_lister": [
