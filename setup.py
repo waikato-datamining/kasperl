@@ -21,7 +21,6 @@ setup(
     url="https://github.com/waikato-datamining/kasperl",
     classifiers=[
         'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: MIT License',
         'Topic :: Utilities',
         'Programming Language :: Python :: 3',
     ],
