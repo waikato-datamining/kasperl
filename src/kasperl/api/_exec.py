@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Union
 
 from wai.logging import init_logging, set_logging_level, add_logging_level
 
-from seppl import split_cmdline, Plugin, load_args
+from seppl import split_cmdline, Plugin, load_args, remove_comments
 from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
 from ._generator import compile_generator_vars_list
 from ._help import CommandlineParameter, params_to_parser
@@ -49,7 +49,7 @@ def load_pipeline(pipeline: Union[str, List[str]], pipeline_format: str = PIPELI
         if isinstance(pipeline, str):
             result = split_cmdline(pipeline)
         else:
-            result = pipeline
+            result = remove_comments(pipeline)
 
     elif pipeline_format == PIPELINE_FORMAT_FILE:
         if isinstance(pipeline, str):
