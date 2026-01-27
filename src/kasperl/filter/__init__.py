@@ -6,6 +6,7 @@ from ._check_duplicate_filenames import CheckDuplicateFilenames, DUPLICATE_ACTIO
 from ._copy_files import CopyFiles
 from ._discard_by_name import DiscardByName
 from ._list_to_sequence import ListToSequence
+from ._log_data import LogData
 from ._max_records import MaxRecords
 from ._metadata import MetaData
 from ._metadata_from_name import MetaDataFromName

@@ -9,6 +9,7 @@ Changelog
 - added the `cron` dummy reader which outputs a string according to the provided execution expression
   (e.g., *every 10 seconds* or *every 5 minutes on workdays*)
 - `load_pipeline` removes comments now
+- added the `log-data` filter for logging information about the data passing through
 
 
 0.0.1 (2025-10-31)
