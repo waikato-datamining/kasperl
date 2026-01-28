@@ -1,5 +1,6 @@
 import argparse
 import os
+from datetime import datetime
 from typing import List
 
 from wai.logging import LOGGING_WARNING
@@ -10,12 +11,19 @@ from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
 from kasperl.api import make_list, flatten_list, SourceSupporter, NameSupporter, AnnotationHandler
 
 
+PH_TIME = "{TIME}"
+PH_DATE = "{DATE}"
+PH_TIMESTAMP = "{TS}"
 PH_NAME = "{NAME}"
 PH_SOURCE = "{SOURCE}"
 PH_HAS_ANNOTATION = "{HAS_ANNOTATION}"
 PH_ANNOTATION = "{ANNOTATION}"
 PH_META = "{META.<key>}"
 PH_META_START = "{META."
+
+FORMAT_DATE = "%Y-%m-%d"
+FORMAT_TIME = "%H:%M:%S.%f"
+FORMAT_TS = "%Y-%m-%d %H:%M:%S.%f"
 
 
 def log_format_help() -> str:
@@ -25,7 +33,10 @@ def log_format_help() -> str:
     :return: the help string
     :rtype: str
     """
-    return PH_NAME + ": for NameSupporter data, " \
+    return PH_DATE + ": for the current data (YYYY-MM-DD), " \
+        + PH_TIME + ": for the current time (HH:MM:SS.SSSSSS), " \
+        + PH_TIMESTAMP + ": for the current date/time (YYYY-MM-DD HH:MM:SS.SSSSSS), " \
+        + PH_NAME + ": for NameSupporter data, " \
         + PH_SOURCE + ": for SourceSupporter data, " \
         + PH_HAS_ANNOTATION + "/" + PH_ANNOTATION + ": for AnnotationHandler data, " \
         + PH_META + ": for MetaDataHandler data (<key> is the key in the meta-data); " \
@@ -102,7 +113,7 @@ class LogData(BatchFilter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-f", "--log_format", metavar="FORMAT", type=str, help="The format to use for logging; " + log_format_help(), required=True)
+        parser.add_argument("-f", "--log_format", metavar="FORMAT", type=str, help="The format to use for logging; " + log_format_help(), default=PH_TIMESTAMP + ": " + PH_NAME)
         parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the logging data to; " + placeholder_list(obj=self), required=False)
         parser.add_argument("-d", "--delete_on_initialize", action="store_true", help="Whether to remove any existing file when initializing the writer.")
         return parser
@@ -138,9 +149,19 @@ class LogData(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the potentially updated record(s)
         """
         result = []
+        now = datetime.now()
+        date_str = datetime.strftime(now, FORMAT_DATE)
+        time_str = datetime.strftime(now, FORMAT_TIME)
+        ts_str = datetime.strftime(now, FORMAT_TS)
         for item in make_list(data):
             line = self.log_format
             line = line.replace("\\t", "\t").replace("\\n", "\n")
+            if PH_DATE in line:
+                line = line.replace(PH_DATE, date_str)
+            if PH_TIME in line:
+                line = line.replace(PH_TIME, time_str)
+            if PH_TIMESTAMP in line:
+                line = line.replace(PH_TIMESTAMP, ts_str)
             if isinstance(item, NameSupporter) and (PH_NAME in line):
                 line = line.replace(PH_NAME, item.get_name())
             if isinstance(item, SourceSupporter) and (PH_SOURCE in line):
