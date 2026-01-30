@@ -11,6 +11,7 @@ Changelog
 - `load_pipeline` removes comments now
 - added the `log-data` filter for logging information about the data passing through
 - the `set-metadata` filter now expands placeholders in the value if of type 'string'
+- the `rename` filter now allows applying regexp/group expansion to the name
 
 
 0.0.1 (2025-10-31)

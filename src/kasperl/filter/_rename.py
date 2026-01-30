@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from typing import List
 
 from seppl import AnyData
@@ -63,12 +64,17 @@ class Rename(BatchFilter):
     Renames files using a user-supplied format.
     """
 
-    def __init__(self, name_format: str = RENAME_PH_SAME, logger_name: str = None, logging_level: str = LOGGING_WARNING):
+    def __init__(self, name_format: str = RENAME_PH_SAME, regexp: str = None, groups: str = None,
+                 logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
         :param name_format: the format to use for the file name
         :type name_format: str
+        :param regexp: the regular expression to use for extracting parts from the name (after the format has been applied)
+        :type regexp: str
+        :param groups: the format string for applying the regexp groups into the final name ({1}: 1st group, etc)
+        :type groups: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -76,6 +82,8 @@ class Rename(BatchFilter):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.name_format = name_format
+        self.regexp = regexp
+        self.groups = groups
         self._count = None
         self._occurrences = None
 
@@ -124,6 +132,8 @@ class Rename(BatchFilter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--name-format", type=str, help="The format for the new name.\n" + _format_help(), default=RENAME_PH_SAME, required=False)
+        parser.add_argument("-r", "--regexp", type=str, help="The regular expression to use for extracting groups from the name determined by --name-format.", default=None, required=False)
+        parser.add_argument("-g", "--groups", type=str, help="The format for assembling the extracted groups ({1}: first group, etc).", default=None, required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -135,6 +145,8 @@ class Rename(BatchFilter):
         """
         super()._apply_args(ns)
         self.name_format = ns.name_format
+        self.regexp = ns.regexp
+        self.groups = ns.groups
 
     def initialize(self):
         """
@@ -143,6 +155,8 @@ class Rename(BatchFilter):
         super().initialize()
         self._count = 0
         self._occurrences = dict()
+        if (self.regexp is not None) and (self.groups is None):
+            raise Exception("When specifying a regular expression for extracting groups, the format for assembling the groups must be supplied as well!")
 
     def _parent_dir(self, path: str, pattern: str) -> str:
         """
@@ -226,6 +240,13 @@ class Rename(BatchFilter):
                 pdir = self._parent_dir(path, pattern)
                 self.logger().info("Parent dir: %s -> %s" % (pattern, pdir))
                 name_new = name_new.replace("{%s}" % pattern, pdir)
+
+            if self.regexp is not None:
+                m = re.search(self.regexp, name_new)
+                if m is not None:
+                    name_new = self.groups
+                    for g in range(1, m.lastindex+1):
+                        name_new = name_new.replace("{" + str(g) + "}", m.group(g))
 
             self.logger().info("Result: %s -> %s" % (name, name_new))
 
