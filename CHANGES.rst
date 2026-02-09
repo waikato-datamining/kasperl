@@ -12,6 +12,7 @@ Changelog
 - added the `log-data` filter for logging information about the data passing through
 - the `set-metadata` filter now expands placeholders in the value if of type 'string'
 - the `rename` filter now allows applying regexp/group expansion to the name
+- added the `count-data` filter for counting data items
 
 
 0.0.1 (2025-10-31)
