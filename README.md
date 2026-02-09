@@ -34,6 +34,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.NameSupporter - for record classes that manage a name
 * kasperl.api.SourceSupporter - for record classes that manage a source path
 * kasperl.api.AnnotationHandler - for record classes that manage annotations
+* kasperl.api.BytesSupporter - for record classes that can return their data as bytes
 
 ### Generators
 

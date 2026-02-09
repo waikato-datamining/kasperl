@@ -2,7 +2,7 @@ from ._comparison import compare_values, COMPARISONS, COMPARISON_HELP, COMPARISO
     COMPARISON_LESSTHAN, COMPARISON_LESSOREQUAL, COMPARISON_EQUAL, COMPARISON_NOTEQUAL, COMPARISON_GREATEROREQUAL, \
     COMPARISON_GREATERTHAN, COMPARISON_CONTAINS, COMPARISON_MATCHES
 from ._session import Session
-from ._data import make_list, flatten_list, NameSupporter, SourceSupporter, AnnotationHandler
+from ._data import make_list, flatten_list, NameSupporter, SourceSupporter, AnnotationHandler, BytesSupporter
 from ._generator import Generator, SingleVariableGenerator, test_generator, perform_generator_test, compile_generator_vars_list
 from ._exec import execute_pipeline, perform_pipeline_execution, load_pipeline, PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, PIPELINE_FORMAT_FILE
 from ._find import find_files_parser, find_files, perform_find_files

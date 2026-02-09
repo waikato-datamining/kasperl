@@ -100,3 +100,18 @@ class SourceSupporter:
         :rtype: str
         """
         raise NotImplementedError()
+
+
+class BytesSupporter:
+    """
+    Mixin for classes that can return their payload as bytes.
+    """
+
+    def get_bytes(self) -> bytes:
+        """
+        Returns the data as bytes.
+
+        :return: the data
+        :rtype: bytes
+        """
+        raise NotImplementedError()
