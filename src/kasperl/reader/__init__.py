@@ -2,6 +2,7 @@ from ._cron import Cron
 from ._get_email import GetEmail, MESSAGE_ACTIONS, MESSAGE_ACTION_NONE, MESSAGE_ACTION_READ, MESSAGE_ACTION_DELETE
 from ._list_files import ListFiles
 from ._poll_dir import PollDir, POLL_ACTIONS, POLL_ACTION_NOTHING, POLL_ACTION_MOVE, POLL_ACTION_DELETE
+from ._shell_exec import ShellExec
 from ._start import Start
 from ._storage import StorageReader
 from ._text_file import TextFileReader

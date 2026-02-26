@@ -14,6 +14,7 @@ Changelog
 - the `rename` filter now allows applying regexp/group expansion to the name
 - added the `count-data` filter for counting data items
 - added `BytesSupporter` mixin
+- added the `shell-exec` reader for executing arbitrary external commands
 
 
 0.0.1 (2025-10-31)
