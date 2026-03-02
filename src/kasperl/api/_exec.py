@@ -187,7 +187,8 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
                              + "The format '" + PIPELINE_FORMAT_FILE + "' expects a file to load the pipeline arguments "
                              + "from. This file format allows spreading the pipeline arguments over multiple lines: it "
                              + "simply joins all lines into a single command-line before splitting it into individual "
-                             + "arguments for execution.")
+                             + "arguments for execution; any line starting with # is interpreted as commend and removed "
+                             + "before joining.")
     parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute; see '" + PARAM_EXEC_FORMAT + "' option.", nargs=argparse.REMAINDER)
     if logger is not None:
         add_logging_level(parser, short_opt=None, long_opt="--exec_logging_level")

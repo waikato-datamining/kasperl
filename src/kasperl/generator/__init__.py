@@ -1,5 +1,6 @@
 from ._csv_file import CSVFileGenerator
 from ._dirs import DirectoryGenerator, DIRS_VARS, VAR_ABSDIR, VAR_RELDIR, VAR_DIRNAME
+from ._files import FileGenerator, FILES_VARS, VAR_ABSFILE, VAR_RELFILE, VAR_FILENAME
 from ._list import ListGenerator
 from ._null import NullGenerator
 from ._prompt import PromptGenerator
