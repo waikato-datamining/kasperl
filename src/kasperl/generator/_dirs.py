@@ -11,7 +11,7 @@ from kasperl.api import Generator
 VAR_ABSDIR = "absdir"
 VAR_RELDIR = "reldir"
 VAR_DIRNAME = "dirname"
-VARS = [
+DIRS_VARS = [
     VAR_ABSDIR,
     VAR_RELDIR,
     VAR_DIRNAME,
@@ -64,7 +64,7 @@ class DirectoryGenerator(Generator):
         :rtype: str
         """
         return "Iterates over directories that it finds. Can be limited to directories that contain certain files. " \
-            + "Available variables: " + "|".join(VARS) + ". " \
+            + "Available variables: " + "|".join(DIRS_VARS) + ". " \
             + VAR_ABSDIR + ": the absolute directory, " \
             + VAR_RELDIR + ": the relative directory to the search path, " \
             + VAR_DIRNAME + ": the directory name (no parent path)."
