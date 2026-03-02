@@ -52,7 +52,9 @@ class Generator(PluginWithLogging, Initializable, abc.ABC):
         msg = self._check()
         if msg is not None:
             raise Exception(msg)
-        return self._do_generate()
+        result = self._do_generate()
+        self.logger().info("# variables determined: %d" % len(result))
+        return result
 
     @classmethod
     def parse_generator(cls, cmdline: str, available_generators: Dict[str, Plugin]) -> 'Generator':
