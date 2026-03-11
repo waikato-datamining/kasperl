@@ -168,11 +168,13 @@ class FileGenerator(Generator):
                     rel_file = rel_file[1:]
             else:
                 rel_file = None
-            file_name = os.path.basename(abs_file)
+            filename = os.path.basename(abs_file)
+            filename_noext = os.path.split(filename)[0]
             result.append({
                 VAR_ABSFILE: abs_file,
                 VAR_RELFILE: rel_file,
-                VAR_FILENAME: file_name,
+                VAR_FILENAME: filename,
+                VAR_FILENAME_NOEXT: filename_noext,
             })
 
         return result
