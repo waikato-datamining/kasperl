@@ -11,10 +11,12 @@ from kasperl.api import Generator
 VAR_ABSFILE = "absfile"
 VAR_RELFILE = "relfile"
 VAR_FILENAME = "filename"
+VAR_FILENAME_NOEXT = "filename_noext"
 FILES_VARS = [
     VAR_ABSFILE,
     VAR_RELFILE,
     VAR_FILENAME,
+    VAR_FILENAME_NOEXT,
 ]
 
 
@@ -64,7 +66,8 @@ class FileGenerator(Generator):
             + "Available variables: " + "|".join(FILES_VARS) + ". " \
             + VAR_ABSFILE + ": the absolute file, " \
             + VAR_RELFILE + ": the relative file to the search path, " \
-            + VAR_FILENAME + ": the file name (no parent path)."
+            + VAR_FILENAME + ": the file name (no parent path), " \
+            + VAR_FILENAME_NOEXT + ": the file name without extension (no parent path)."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
