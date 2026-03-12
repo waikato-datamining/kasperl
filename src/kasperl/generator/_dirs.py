@@ -23,7 +23,7 @@ class DirectoryGenerator(Generator):
     Iterates over directories that it finds.
     """
 
-    def __init__(self, path: str = None, recursive: bool = False, regexp: str = None, file_regexp: str = None,
+    def __init__(self, path: str = None, recursive: bool = False, regexp: str = None, file_regexp: str = None, sort: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the generator.
@@ -36,6 +36,8 @@ class DirectoryGenerator(Generator):
         :type regexp: str
         :param file_regexp: the regular expression that at least one file must match in a directory (path is excluded from test), ignored if None
         :param file_regexp: str
+        :param sort: whether to sort the dirs
+        :type sort: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -46,6 +48,7 @@ class DirectoryGenerator(Generator):
         self.recursive = recursive
         self.regexp = regexp
         self.file_regexp = file_regexp
+        self.sort = sort
 
     def name(self) -> str:
         """
@@ -81,6 +84,7 @@ class DirectoryGenerator(Generator):
         parser.add_argument("-r", "--recursive", action="store_true", help="Whether to search for directories recursively.", required=False)
         parser.add_argument("--regexp", type=str, metavar="REGEXP", default=None, help="The regular expression to use for matching directories; matches all if not provided.", required=False)
         parser.add_argument("--file_regexp", type=str, metavar="REGEXP", default=None, help="Only directories that have at least one file matching this regexp are returned (path is excluded from test); all directories are turned if not provided.", required=False)
+        parser.add_argument("-s", "--sort", action="store_true", help="Whether to sort the list of directories.", required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -95,6 +99,7 @@ class DirectoryGenerator(Generator):
         self.recursive = ns.recursive
         self.regexp = ns.regexp
         self.file_regexp = ns.file_regexp
+        self.sort = ns.sort
 
     def _check(self) -> Optional[str]:
         """
@@ -104,6 +109,9 @@ class DirectoryGenerator(Generator):
         :rtype: str
         """
         result = super()._check()
+
+        if self.sort is None:
+            self.sort = False
 
         if result is None:
             if self.regexp == "":
@@ -186,6 +194,8 @@ class DirectoryGenerator(Generator):
         paths = []
         for abs_dir in self.path:
             self._locate(os.path.abspath(abs_dir), os.path.abspath(abs_dir), self.recursive, paths)
+        if self.sort:
+            paths.sort()
 
         # prepare variables
         for parent_dir, abs_dir in paths:

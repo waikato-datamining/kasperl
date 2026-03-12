@@ -25,7 +25,7 @@ class FileGenerator(Generator):
     Iterates over files that it finds.
     """
 
-    def __init__(self, path: str = None, recursive: bool = False, regexp: str = None,
+    def __init__(self, path: str = None, recursive: bool = False, regexp: str = None, sort: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the generator.
@@ -36,6 +36,8 @@ class FileGenerator(Generator):
         :type recursive: bool
         :param regexp: the regular expression for matching directories
         :type regexp: str
+        :param sort: whether to sort the files
+        :type sort: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -45,6 +47,7 @@ class FileGenerator(Generator):
         self.path = path
         self.recursive = recursive
         self.regexp = regexp
+        self.sort = sort
 
     def name(self) -> str:
         """
@@ -80,6 +83,7 @@ class FileGenerator(Generator):
         parser.add_argument("-p", "--path", type=str, metavar="DIR", default=None, help="The directory/directories to search", required=True, nargs="+")
         parser.add_argument("-r", "--recursive", action="store_true", help="Whether to search for files recursively.", required=False)
         parser.add_argument("--regexp", type=str, metavar="REGEXP", default=None, help="The regular expression to use for matching files; matches all if not provided.", required=False)
+        parser.add_argument("-s", "--sort", action="store_true", help="Whether to sort the list of directories.", required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -93,6 +97,7 @@ class FileGenerator(Generator):
         self.path = ns.path
         self.recursive = ns.recursive
         self.regexp = ns.regexp
+        self.sort = ns.sort
 
     def _check(self) -> Optional[str]:
         """
@@ -102,6 +107,9 @@ class FileGenerator(Generator):
         :rtype: str
         """
         result = super()._check()
+
+        if self.sort is None:
+            self.sort = False
 
         if result is None:
             if self.regexp == "":
@@ -159,6 +167,8 @@ class FileGenerator(Generator):
         paths = []
         for abs_file in self.path:
             self._locate(os.path.abspath(abs_file), os.path.abspath(abs_file), self.recursive, paths)
+        if self.sort:
+            paths.sort()
 
         # prepare variables
         for parent_dir, abs_file in paths:
