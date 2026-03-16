@@ -15,6 +15,7 @@ Changelog
 - added the `count-data` filter for counting data items
 - added `BytesSupporter` mixin
 - added the `shell-exec` reader for executing arbitrary external commands
+- added the `get-metadata` filter to extract field values from the meta-data
 
 
 0.0.1 (2025-10-31)
