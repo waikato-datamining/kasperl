@@ -21,6 +21,7 @@ from ._rename import Rename, RENAME_PLACEHOLDERS, RENAME_PH_NAME, RENAME_PH_COUN
 from ._sample import Sample
 from ._set_metadata import SetMetaData
 from ._set_placeholder import SetPlaceholder
+from ._sleep import Sleep
 from ._split_records import SplitRecords
 from ._stop import Stop
 from ._storage import StorageUpdater, DeleteStorage
