@@ -89,7 +89,7 @@ class Sleep(BatchFilter):
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if self.wait_time:
+        if self.wait_time is None:
             self.wait_time = 0.0
 
     def _do_process(self, data):
