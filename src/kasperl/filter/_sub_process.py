@@ -1,8 +1,9 @@
 import abc
 import argparse
+from time import time
 from typing import List, Dict
 
-from wai.logging import LOGGING_WARNING
+from wai.logging import LOGGING_WARNING, LOGGING_INFO
 
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP, \
@@ -18,6 +19,7 @@ class SubProcess(BatchFilter, abc.ABC):
 
     def __init__(self, sub_flow: str = None, sub_flow_format: str = None,
                  field: str = None, comparison: str = COMPARISON_EQUAL, value=None,
+                 log_execution_time: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
@@ -31,6 +33,8 @@ class SubProcess(BatchFilter, abc.ABC):
         :param comparison: the comparison to perform
         :type comparison: str
         :param value: the value to compare with
+        :param log_execution_time: whether to log how long it takes to execute the sub-flow
+        :type log_execution_time: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -42,6 +46,7 @@ class SubProcess(BatchFilter, abc.ABC):
         self.field = field
         self.value = value
         self.comparison = comparison
+        self.log_execution_time = log_execution_time
         self._sub_flow = None
         self._filter = None
 
@@ -97,6 +102,7 @@ class SubProcess(BatchFilter, abc.ABC):
         parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
         parser.add_argument("--value", type=str, help="The value to use in the comparison", default=None, required=False)
+        parser.add_argument("--log_execution_time", action="store_true", help="Whether to log the time it takes to execute the sub-flow. Requires the " + LOGGING_INFO + " level to be set.", required=False)
         return parser
 
     @abc.abstractmethod
@@ -139,6 +145,7 @@ class SubProcess(BatchFilter, abc.ABC):
         self.field = ns.field
         self.value = ns.value
         self.comparison = ns.comparison
+        self.log_execution_time = ns.log_execution_time
 
     def initialize(self):
         """
@@ -170,6 +177,9 @@ class SubProcess(BatchFilter, abc.ABC):
         if (self.field is not None) and (self.value is None):
             raise Exception("No value provided to compare with!")
 
+        if self.log_execution_time is None:
+            self.log_execution_time = False
+
     def _do_process(self, data):
         """
         Processes the data record(s).
@@ -177,6 +187,7 @@ class SubProcess(BatchFilter, abc.ABC):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
+        time_start = time()
         result = []
         for item in make_list(data):
             process = True
@@ -199,6 +210,11 @@ class SubProcess(BatchFilter, abc.ABC):
                 item = self._filter.process(item)
 
             result.append(item)
+
+        # output execution time?
+        time_end = time()
+        if self.log_execution_time:
+            self.logger().info("Execution time: %f" % (time_end - time_start))
 
         return flatten_list(result)
 

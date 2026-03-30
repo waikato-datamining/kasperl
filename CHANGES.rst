@@ -17,6 +17,7 @@ Changelog
 - added the `shell-exec` reader for executing arbitrary external commands
 - added the `get-metadata` filter to extract field values from the meta-data
 - added the `sleep` filter for waiting specified number of seconds before forwarding data
+- added `--log_execution_time` flag to `sub-process`, `tee`, `trigger`
 
 
 0.0.1 (2025-10-31)
