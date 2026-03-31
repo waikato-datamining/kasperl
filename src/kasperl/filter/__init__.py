@@ -9,6 +9,7 @@ from ._discard_by_name import DiscardByName
 from ._get_metadata import GetMetaData
 from ._list_to_sequence import ListToSequence
 from ._log_data import LogData
+from ._log_placeholder import LogPlaceholder
 from ._max_records import MaxRecords
 from ._metadata import MetaData
 from ._metadata_from_name import MetaDataFromName
