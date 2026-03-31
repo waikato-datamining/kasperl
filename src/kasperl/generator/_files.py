@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Tuple
 
 from wai.logging import LOGGING_WARNING
 from kasperl.api import Generator
-
+from seppl.placeholders import expand_placeholders
 
 VAR_ABSFILE = "absfile"
 VAR_RELFILE = "relfile"
@@ -122,6 +122,7 @@ class FileGenerator(Generator):
 
         if result is None:
             for p in self.path:
+                p = expand_placeholders(p)
                 if not os.path.exists(p):
                     result = "Directory does not exist: %s" % p
                 elif not os.path.isdir(p):
@@ -166,6 +167,7 @@ class FileGenerator(Generator):
         # locate files
         paths = []
         for abs_file in self.path:
+            abs_file = expand_placeholders(abs_file)
             self._locate(os.path.abspath(abs_file), os.path.abspath(abs_file), self.recursive, paths)
         if self.sort:
             paths.sort()
