@@ -200,19 +200,20 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
         set_logging_level(logger, parsed.logging_level)
 
     if parsed.exec_placeholders is not None:
-        if not os.path.exists(parsed.exec_placeholders):
-            msg = "Placeholder file not found: %s" % parsed.exec_placeholders
+        path = expand_placeholders(parsed.exec_placeholders)
+        if not os.path.exists(path):
+            msg = "Placeholder file not found: %s" % path
             if logger is not None:
                 logger.error(msg)
             else:
                 print(msg)
         else:
-            msg = "Loading custom placeholders from: %s" % parsed.exec_placeholders
+            msg = "Loading custom placeholders from: %s" % path
             if logger is not None:
                 logger.info(msg)
             else:
                 print(msg)
-            load_user_defined_placeholders(parsed.exec_placeholders)
+            load_user_defined_placeholders(path)
 
     # custom pre-execution hook?
     if pre_exec is not None:

@@ -18,6 +18,7 @@ Changelog
 - added the `get-metadata` filter to extract field values from the meta-data
 - added the `sleep` filter for waiting specified number of seconds before forwarding data
 - added `--log_execution_time` flag to `sub-process`, `tee`, `trigger`
+- `parse_conversion_args` and `perform_pipeline_execution` now support default placeholders HOME/CWD/TMP
 
 
 0.0.1 (2025-10-31)

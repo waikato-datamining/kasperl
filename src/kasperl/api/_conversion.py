@@ -218,11 +218,12 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
                       logger=logger)
     set_logging_level(session.logger, session.options.logging_level)
     if session.options.placeholders is not None:
-        if not os.path.exists(session.options.placeholders):
-            session.logger.error("Placeholder file not found: %s" % session.options.placeholders)
+        path = expand_placeholders(session.options.placeholders)
+        if not os.path.exists(path):
+            session.logger.error("Placeholder file not found: %s" % path)
         else:
-            session.logger.info("Loading custom placeholders from: %s" % session.options.placeholders)
-            load_user_defined_placeholders(session.options.placeholders)
+            session.logger.info("Loading custom placeholders from: %s" % path)
+            load_user_defined_placeholders(path)
     if session.options.dump_pipeline is not None:
         # remove "--dump_pipeline ..." args
         dump_args = args[:]
