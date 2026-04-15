@@ -34,7 +34,7 @@ class MetaDataWriter(SplittableStreamWriter, InputBasedPlaceholderSupporter, abc
                  split_names: List[str] = None, split_ratios: List[int] = None, split_group: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
-        Initializes the reader.
+        Initializes the writer.
 
         :param output_dir: the output directory to save the image/report in
         :type output_dir: str
