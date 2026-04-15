@@ -82,6 +82,16 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         self.append = ns.append
         self.delete_on_initialize = ns.delete_on_initialize
 
+    @abc.abstractmethod
+    def _available_data_formatters(self) -> Dict[str, Plugin]:
+        """
+        Returns the available data formatter plugins.
+
+        :return: the plugins (name -> plugin)
+        :rtype: dict
+        """
+        raise NotImplementedError()
+
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
@@ -90,7 +100,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         if self.data_formatter is None:
             self.data_formatter = "df-simple-string"
         if self._data_formatter is None:
-            self._data_formatter = DataFormatter.parse_dataformatters(self.data_formatter, available_dataformatters=self._available_data_formatters())
+            self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
         output_file = self.session.expand_placeholders(self.output_file)
         if os.path.exists(output_file) and os.path.isfile(output_file):
             self.logger().info("Deleting during initialization: %s" % output_file)
@@ -104,15 +114,6 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         :rtype: list
         """
         return [AnyData]
-
-    def _available_data_formatters(self) -> Dict[str, Plugin]:
-        """
-        Returns the available data formatter plugins.
-
-        :return: the plugins (name -> plugin)
-        :rtype: dict
-        """
-        raise NotImplementedError()
 
     def write_stream(self, data):
         """

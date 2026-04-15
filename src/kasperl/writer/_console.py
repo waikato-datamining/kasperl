@@ -74,16 +74,7 @@ class ConsoleWriter(StreamWriter, abc.ABC):
         """
         return [AnyData]
 
-    def initialize(self):
-        """
-        Initializes the processing, e.g., for opening files or databases.
-        """
-        super().initialize()
-        if self.data_formatter is None:
-            self.data_formatter = "df-simple-string"
-        if self._data_formatter is None:
-            self._data_formatter = DataFormatter.parse_dataformatters(self.data_formatter, available_dataformatters=self._available_data_formatters())
-
+    @abc.abstractmethod
     def _available_data_formatters(self) -> Dict[str, Plugin]:
         """
         Returns the available data formatter plugins.
@@ -92,6 +83,16 @@ class ConsoleWriter(StreamWriter, abc.ABC):
         :rtype: dict
         """
         raise NotImplementedError()
+
+    def initialize(self):
+        """
+        Initializes the processing, e.g., for opening files or databases.
+        """
+        super().initialize()
+        if self.data_formatter is None:
+            self.data_formatter = "df-simple-string"
+        if self._data_formatter is None:
+            self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
 
     def write_stream(self, data):
         """
