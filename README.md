@@ -48,6 +48,11 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.generator.RangeGenerator
 * kasperl.generator.TextFileGenerator
 
+### Data formatters
+
+* kasperl.api.DataFormatter (superclass)
+* kasperl.dataformatter.SimpleStringFormatter
+
 ### Readers
 
 * kasperl.api.Reader (superclass)
@@ -104,12 +109,12 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.SplittableStreamWriter (superclass)
 * kasperl.api.AnnotationsOnlyWriter (mixin)
 * kasperl.api.add_annotations_only_param (function)
-* kasperl.writer.Console
+* kasperl.writer.Console (abstract)
 * kasperl.writer.DeleteFiles
 * kasperl.writer.MetaData (abstract)
 * kasperl.writer.SendEmail (abstract)
 * kasperl.writer.StorageWriter
-* kasperl.writer.TextFile
+* kasperl.writer.TextFile (abstract)
 
 ### Other
 

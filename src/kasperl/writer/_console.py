@@ -1,10 +1,30 @@
-from typing import List
+import abc
+import argparse
+from typing import List, Dict
 
-from seppl import AnyData
-from seppl.io import StreamWriter
+from wai.logging import LOGGING_WARNING
+
+from kasperl.api import DataFormatter, StreamWriter, make_list
+from seppl import AnyData, Plugin
 
 
-class ConsoleWriter(StreamWriter):
+class ConsoleWriter(StreamWriter, abc.ABC):
+
+    def __init__(self, data_formatter: str = None,
+                 logger_name: str = None, logging_level: str = LOGGING_WARNING):
+        """
+        Initializes the reader.
+
+        :param data_formatter: the data formatter to apply (plugin name + options)
+        :type data_formatter: str
+        :param logger_name: the name to use for the logger
+        :type logger_name: str
+        :param logging_level: the logging level to use
+        :type logging_level: str
+        """
+        super().__init__(logger_name=logger_name, logging_level=logging_level)
+        self.data_formatter = data_formatter
+        self._data_formatter = None
 
     def name(self) -> str:
         """
@@ -22,7 +42,28 @@ class ConsoleWriter(StreamWriter):
         :return: the description
         :rtype: str
         """
-        return "Just prints the data to stdout."
+        return "Prints the data to stdout using the supplied data formatter."
+
+    def _create_argparser(self) -> argparse.ArgumentParser:
+        """
+        Creates an argument parser. Derived classes need to fill in the options.
+
+        :return: the parser
+        :rtype: argparse.ArgumentParser
+        """
+        parser = super()._create_argparser()
+        parser.add_argument("-f", "--data_formatter", type=str, help="The data formatter to apply", required=False, default="df-simple-string")
+        return parser
+
+    def _apply_args(self, ns: argparse.Namespace):
+        """
+        Initializes the object with the arguments of the parsed namespace.
+
+        :param ns: the parsed arguments
+        :type ns: argparse.Namespace
+        """
+        super()._apply_args(ns)
+        self.data_formatter = ns.data_formatter
 
     def accepts(self) -> List:
         """
@@ -33,10 +74,31 @@ class ConsoleWriter(StreamWriter):
         """
         return [AnyData]
 
+    def initialize(self):
+        """
+        Initializes the processing, e.g., for opening files or databases.
+        """
+        super().initialize()
+        if self.data_formatter is None:
+            self.data_formatter = "df-simple-string"
+        if self._data_formatter is None:
+            self._data_formatter = DataFormatter.parse_dataformatters(self.data_formatter, available_dataformatters=self._available_data_formatters())
+
+    def _available_data_formatters(self) -> Dict[str, Plugin]:
+        """
+        Returns the available data formatter plugins.
+
+        :return: the plugins (name -> plugin)
+        :rtype: dict
+        """
+        raise NotImplementedError()
+
     def write_stream(self, data):
         """
         Saves the data one by one.
 
         :param data: the data to write (single record or iterable of records)
         """
-        print(data)
+        for item in make_list(data):
+            item_str = self._data_formatter.format_data(item)
+            print(item_str)

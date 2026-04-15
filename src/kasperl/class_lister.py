@@ -15,4 +15,7 @@ def list_classes() -> Dict[str, List[str]]:
         "kasperl.api.Generator": [
             "kasperl.generator",
         ],
+        "kasperl.api.DataFormatter": [
+            "kasperl.dataformatter",
+        ],
     }
