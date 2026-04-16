@@ -53,7 +53,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Applies the specified data formatter to the incoming data and stores the result in the specified text file."
+        return "Applies the specified data formatter to the incoming data and stores the result in the specified text file. Any other placeholders will get expanded in the data formatter output as well."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
@@ -123,6 +123,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         for item in make_list(data):
             item_str = self._data_formatter.format_data(item)
+            item_str = self.session.expand_placeholders(item_str)
             output_file = self.session.expand_placeholders(self.output_file)
             if self.append:
                 with open(output_file, "a") as fp:
