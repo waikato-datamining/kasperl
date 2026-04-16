@@ -89,7 +89,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.PassThrough
 * kasperl.filter.RandomizeRecords
 * kasperl.filter.RecordWindow
-* kasperl.filter.Rename
+* kasperl.filter.Rename (abstract)
 * kasperl.filter.Sample
 * kasperl.filter.SetMetaData
 * kasperl.filter.SetPlaceholder

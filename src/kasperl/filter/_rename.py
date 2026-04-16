@@ -1,7 +1,8 @@
+import abc
 import argparse
 import os
 import re
-from typing import List
+from typing import List, Any
 
 from seppl import AnyData
 from seppl.io import BatchFilter
@@ -59,7 +60,7 @@ def _format_help() -> str:
     return result
 
 
-class Rename(BatchFilter):
+class Rename(BatchFilter, abc.ABC):
     """
     Renames files using a user-supplied format.
     """
@@ -181,6 +182,20 @@ class Rename(BatchFilter):
             self.logger().warning("Number of parents (%d) is too high for path (%s) to generate a name!" % (orig_num, orig_path))
         return pdir
 
+    @abc.abstractmethod
+    def _duplicate(self, item: Any, path: str, name_new: str) -> Any:
+        """
+        Duplicates the data item using the new name.
+
+        :param item: the item to duplicate
+        :param path: the path of the item
+        :type path: str
+        :param name_new: the new name
+        :type name_new: str
+        :return: the duplicated item
+        """
+        raise NotImplementedError()
+
     def _do_process(self, data):
         """
         Processes the data record(s).
@@ -250,7 +265,7 @@ class Rename(BatchFilter):
 
             self.logger().info("Result: %s -> %s" % (name, name_new))
 
-            item_new = item.duplicate(source=os.path.join(path, name_new), name=name_new)
+            item_new = self._duplicate(item, path, name_new)
             result.append(item_new)
 
         return flatten_list(result)
