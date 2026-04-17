@@ -91,6 +91,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.RecordWindow
 * kasperl.filter.Rename (abstract)
 * kasperl.filter.Sample
+* kasperl.filter.SanitizeName (abstract)
 * kasperl.filter.SetMetaData
 * kasperl.filter.SetPlaceholder
 * kasperl.filter.SplitRecords

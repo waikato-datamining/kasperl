@@ -21,6 +21,7 @@ Changelog
 - `parse_conversion_args` and `perform_pipeline_execution` now support default placeholders HOME/CWD/TMP
 - generators `csv-file`, `dirs`, `files` and `text-file` now support placeholders in their paths
 - added `log-placeholder` filter, which can be used for logging placeholder values
+- added `sanitize-name` filter, for removing unwanted characters from file names
 
 
 0.0.1 (2025-10-31)
