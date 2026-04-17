@@ -104,7 +104,7 @@ class Rename(BatchFilter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Renames files using a user-supplied format."
+        return "Renames files using a user-supplied format. As a final step, expands placeholders as well."
 
     def accepts(self) -> List:
         """
@@ -262,6 +262,9 @@ class Rename(BatchFilter, abc.ABC):
                     name_new = self.groups
                     for g in range(1, m.lastindex+1):
                         name_new = name_new.replace("{" + str(g) + "}", m.group(g))
+
+            # expand any other placeholders
+            name_new = self.session.expand_placeholders(name_new)
 
             self.logger().info("Result: %s -> %s" % (name, name_new))
 
