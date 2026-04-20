@@ -125,6 +125,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             item_str = self._data_formatter.format_data(item)
             item_str = self.session.expand_placeholders(item_str)
             output_file = self.session.expand_placeholders(self.output_file)
+            self.logger().info("Writing to: %s" % output_file)
             if self.append:
                 with open(output_file, "a") as fp:
                     fp.write(item_str)
