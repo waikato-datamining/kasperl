@@ -22,6 +22,7 @@ Changelog
 - generators `csv-file`, `dirs`, `files` and `text-file` now support placeholders in their paths
 - added `log-placeholder` filter, which can be used for logging placeholder values
 - added `sanitize-name` filter, for removing unwanted characters from file names
+- added more logging info to `to-text-file` writer
 
 
 0.0.1 (2025-10-31)
