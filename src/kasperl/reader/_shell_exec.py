@@ -6,10 +6,10 @@ from typing import List, Iterable
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
-from seppl.placeholders import placeholder_list, PlaceholderSupporter
+from seppl.variables import variable_list, VariableSupporter
 
 
-class ShellExec(Reader, PlaceholderSupporter):
+class ShellExec(Reader, VariableSupporter):
 
     def __init__(self, env_vars: List[str] = None, workdir: str = None,
                  command: str = None, command_file: str = None,
@@ -64,9 +64,9 @@ class ShellExec(Reader, PlaceholderSupporter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-e", "--env_vars", metavar="KEY=VALUE", type=str, help="The environment variable key=value pairs to use for the execution.", required=False, nargs="*")
-        parser.add_argument("-w", "--workdir", metavar="DIR", type=str, help="The working directory to use; " + placeholder_list(obj=self), required=False, default=None)
-        parser.add_argument("-c", "--command", metavar="CMD", type=str, help="The command to execute; " + placeholder_list(obj=self), required=False, default=None)
-        parser.add_argument("-C", "--command_file", metavar="PATH", type=str, help="The text file with the command to execute; " + placeholder_list(obj=self), required=False, default=None)
+        parser.add_argument("-w", "--workdir", metavar="DIR", type=str, help="The working directory to use; " + variable_list(obj=self), required=False, default=None)
+        parser.add_argument("-c", "--command", metavar="CMD", type=str, help="The command to execute; " + variable_list(obj=self), required=False, default=None)
+        parser.add_argument("-C", "--command_file", metavar="PATH", type=str, help="The text file with the command to execute; " + variable_list(obj=self), required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -121,15 +121,15 @@ class ShellExec(Reader, PlaceholderSupporter):
             for x in self.env_vars:
                 parts = x.split("=")
                 if len(parts) == 2:
-                    env_vars[parts[0]] = self.session.expand_placeholders(parts[1])
+                    env_vars[parts[0]] = self.session.expand_variables(parts[1])
                 else:
                     self.logger().warning("Invalid environment variable format: %s" % x)
             self.logger().info("Using env vars: %s" % str(env_vars))
         workdir = None
         if self.workdir is not None:
-            workdir = self.session.expand_placeholders(self.workdir)
+            workdir = self.session.expand_variables(self.workdir)
             self.logger().info("Using work dir: %s" % workdir)
-        command = shlex.split(self.session.expand_placeholders(self._command))
+        command = shlex.split(self.session.expand_variables(self._command))
         self.logger().info("Executing: %s" % command)
         completed = subprocess.run(command, cwd=workdir, env=env_vars)
         yield str(completed.returncode)

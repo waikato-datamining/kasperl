@@ -1,23 +1,23 @@
 import argparse
 from typing import List
 
-from seppl import AnyData
+from seppl import AnyData, AliasSupporter
 from seppl.io import BatchFilter
-from seppl.placeholders import add_placeholder, InputBasedPlaceholderSupporter
+from seppl.variables import add_variable, InputBasedVariableSupporter
 from wai.logging import LOGGING_WARNING
 
 
-class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
+class MetaDataToVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
 
-    def __init__(self, metadata_key: str = None, placeholder: str = None,
+    def __init__(self, metadata_key: str = None, variable: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
-        :param metadata_key: the meta-data key to get the placeholder value from
+        :param metadata_key: the meta-data key to get the variable value from
         :type metadata_key: str
-        :param placeholder: the name of the placeholder (without curly brackets)
-        :type placeholder: str
+        :param variable: the name of the variable (without curly brackets)
+        :type variable: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -25,7 +25,7 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.metadata_key = metadata_key
-        self.placeholder = placeholder
+        self.variable = variable
 
     def name(self) -> str:
         """
@@ -34,7 +34,16 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the name
         :rtype: str
         """
-        return "metadata-to-placeholder"
+        return "metadata-to-variable"
+
+    def aliases(self) -> List[str]:
+        """
+        Returns the aliases under which the plugin is known under/available as well.
+
+        :return: the aliases
+        :rtype: list
+        """
+        return ["metadata-to-placeholder"]
 
     def description(self) -> str:
         """
@@ -43,7 +52,7 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the description
         :rtype: str
         """
-        return "Sets the placeholder with the value from the meta-data passing through."
+        return "Sets the variable with the value from the meta-data passing through."
 
     def accepts(self) -> List:
         """
@@ -71,8 +80,8 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-k", "--metadata_key", type=str, help="The key in the meta-data to get the value for the placeholder from.", default=None, required=False)
-        parser.add_argument("-p", "--placeholder", type=str, help="The name of the placeholder, without curly brackets.", default=None, required=True)
+        parser.add_argument("-k", "--metadata_key", type=str, help="The key in the meta-data to get the value for the variable from.", default=None, required=False)
+        parser.add_argument("-V", "-p", "--variable", "--placeholder", dest="variable", type=str, help="The name of the variable, without curly brackets.", default=None, required=True)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -83,7 +92,7 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.placeholder = ns.placeholder
+        self.variable = ns.variable
         self.metadata_key = ns.metadata_key
 
     def initialize(self):
@@ -93,8 +102,8 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         super().initialize()
         if self.metadata_key is None:
             raise Exception("No meta-data key provided!")
-        if self.placeholder is None:
-            raise Exception("No placeholder name provided!")
+        if self.variable is None:
+            raise Exception("No variable name provided!")
 
     def _do_process(self, data):
         """
@@ -114,6 +123,6 @@ class MetaDataToPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
             return data
 
         value = meta[self.metadata_key]
-        self.logger().info("%s -> %s" % (self.placeholder, value))
-        add_placeholder(self.placeholder, "from meta-data", False, lambda i: value)
+        self.logger().info("%s -> %s" % (self.variable, value))
+        add_variable(self.variable, "from meta-data", False, lambda i: value)
         return data

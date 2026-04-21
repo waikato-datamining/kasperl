@@ -1,15 +1,11 @@
 import argparse
-import os
-from datetime import datetime
 from typing import List
 
 from wai.logging import LOGGING_WARNING
 
-from seppl import AnyData, MetaDataHandler
+from kasperl.api import make_list
+from seppl import AnyData
 from seppl.io import BatchFilter
-from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
-from kasperl.api import make_list, flatten_list, SourceSupporter, NameSupporter, AnnotationHandler
-
 
 PH_TIME = "{TIME}"
 PH_DATE = "{DATE}"

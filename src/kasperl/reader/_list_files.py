@@ -6,10 +6,10 @@ from typing import List, Iterable
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
-from seppl.placeholders import placeholder_list, PlaceholderSupporter
+from seppl.variables import variable_list, VariableSupporter
 
 
-class ListFiles(Reader, PlaceholderSupporter):
+class ListFiles(Reader, VariableSupporter):
 
     def __init__(self, input_dir: str = None, regexp: str = None, as_list: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
@@ -59,7 +59,7 @@ class ListFiles(Reader, PlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-i", "--input_dir", metavar="DIR", type=str, help="The directory to list the files in; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-i", "--input_dir", metavar="DIR", type=str, help="The directory to list the files in; " + variable_list(obj=self), required=True)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the files must match.", required=False, default=".*")
         parser.add_argument("--as_list", action="store_true", help="Whether to forward the files as a list or one by one.", required=False)
         return parser
@@ -107,7 +107,7 @@ class ListFiles(Reader, PlaceholderSupporter):
         :return: the data
         :rtype: Iterable
         """
-        input_dir = self.session.expand_placeholders(self.input_dir)
+        input_dir = self.session.expand_variables(self.input_dir)
         if not os.path.exists(input_dir):
             raise Exception("input_dir does not exist: %s" % input_dir)
         if not os.path.isdir(input_dir):

@@ -1,28 +1,29 @@
 import argparse
 from typing import List
 
-from seppl import AnyData
-from seppl.io import BatchFilter
-from seppl.placeholders import add_placeholder, InputBasedPlaceholderSupporter, placeholder_list
 from wai.logging import LOGGING_WARNING
 
+from seppl import AnyData, AliasSupporter
+from seppl.io import BatchFilter
+from seppl.variables import InputBasedVariableSupporter
 
-class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
 
-    def __init__(self, placeholders: List[str] = None,
+class LogVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
+
+    def __init__(self, variables: List[str] = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
-        :param placeholders: the names of the placeholder (without curly brackets)
-        :type placeholders: list
+        :param variables: the names of the variables (without curly brackets)
+        :type variables: list
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
         :type logging_level: str
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
-        self.placeholders = placeholders
+        self.variables = variables
 
     def name(self) -> str:
         """
@@ -31,7 +32,16 @@ class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the name
         :rtype: str
         """
-        return "log-placeholder"
+        return "log-variable"
+
+    def aliases(self) -> List[str]:
+        """
+        Returns the aliases under which the plugin is known under/available as well.
+
+        :return: the aliases
+        :rtype: list
+        """
+        return ["log-placeholder"]
 
     def description(self) -> str:
         """
@@ -40,7 +50,7 @@ class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the description
         :rtype: str
         """
-        return "Outputs the values of the specified placeholders. Logging must be set to INFO for the output to show."
+        return "Outputs the values of the specified variables. Logging must be set to INFO for the output to show."
 
     def accepts(self) -> List:
         """
@@ -68,7 +78,7 @@ class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--placeholder", type=str, help="The name of the placeholders, without curly brackets.", default=None, required=True, nargs="+")
+        parser.add_argument("-V", "-p", "--variable", "--placeholder", dest="variable", type=str, help="The name of the variables, without curly brackets.", default=None, required=True, nargs="+")
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -79,15 +89,15 @@ class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.placeholders = ns.placeholder
+        self.variables = ns.variable
 
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if (self.placeholders is None) or (len(self.placeholders) == 0):
-            raise Exception("No placeholder names provided!")
+        if (self.variables is None) or (len(self.variables) == 0):
+            raise Exception("No variable names provided!")
 
     def _do_process(self, data):
         """
@@ -96,6 +106,6 @@ class LogPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
-        for placeholder in self.placeholders:
-            self.logger().info("%s -> %s" % (placeholder, self.session.expand_placeholders("{" + placeholder + "}")))
+        for variable in self.variables:
+            self.logger().info("%s -> %s" % (variable, self.session.expand_variables("{" + variable + "}")))
         return data

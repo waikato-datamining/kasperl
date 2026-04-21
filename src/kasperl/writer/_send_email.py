@@ -13,7 +13,7 @@ from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, StreamWriter
 from seppl import AnyData
-from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
+from seppl.variables import InputBasedVariableSupporter, variable_list
 
 SMTP_HOST = "SMTP_HOST"
 SMTP_PORT = "SMTP_PORT"
@@ -29,7 +29,7 @@ SMTP_ENVS = [
 ]
 
 
-class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
+class SendEmail(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
     def __init__(self, dotenv_path: str = None, email_from: str = None, email_to: Union[str, List[str]] = None,
                  subject: str = None, body: str = None, body_file: str = None,
@@ -89,12 +89,12 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the SMTP environment variables form (" + "|".join(SMTP_ENVS) + "); tries to load .env from the current directory if not specified; " + placeholder_list(obj=self), required=False, default=None)
-        parser.add_argument("-f", "--email_from", metavar="EMAIL", type=str, help="The email address to use for FROM; placeholders get automatically expanded.", default=None, required=True)
-        parser.add_argument("-t", "--email_to", metavar="EMAIL", type=str, help="The email address(es) to send the email TO; placeholders get automatically expanded.", default=None, required=True, nargs="+")
-        parser.add_argument("-s", "--subject", metavar="SUBJECT", type=str, help="The SUBJECT for the email; placeholders get automatically expanded.", default=None, required=False)
-        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use, splits on '\n' strings (not newlines!); placeholders get automatically expanded.", default=None, required=False)
-        parser.add_argument("-B", "--body_file", metavar="FILE", type=str, help="The file with the email body to use; placeholders get automatically expanded.", default=None, required=False)
+        parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the SMTP environment variables form (" + "|".join(SMTP_ENVS) + "); tries to load .env from the current directory if not specified; " + variable_list(obj=self), required=False, default=None)
+        parser.add_argument("-f", "--email_from", metavar="EMAIL", type=str, help="The email address to use for FROM; variables get automatically expanded.", default=None, required=True)
+        parser.add_argument("-t", "--email_to", metavar="EMAIL", type=str, help="The email address(es) to send the email TO; variables get automatically expanded.", default=None, required=True, nargs="+")
+        parser.add_argument("-s", "--subject", metavar="SUBJECT", type=str, help="The SUBJECT for the email; variables get automatically expanded.", default=None, required=False)
+        parser.add_argument("-b", "--body", metavar="TEXT", type=str, help="The email body to use, splits on '\n' strings (not newlines!); variables get automatically expanded.", default=None, required=False)
+        parser.add_argument("-B", "--body_file", metavar="FILE", type=str, help="The file with the email body to use; variables get automatically expanded.", default=None, required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -127,7 +127,7 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             self.subject = ""
         self._body = None
         if self.body_file is not None:
-            path = self.session.expand_placeholders(self.body_file)
+            path = self.session.expand_variables(self.body_file)
             if not os.path.exists(path):
                 raise Exception("File with email body does not exist: %s" % path)
             if os.path.isdir(path):
@@ -222,7 +222,7 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         Attaches the items to the message.
         If an element is another list, calls itself with that list again to iterate that list.
-        If an element is a string, then it gets attached as file (placeholders get automatically expanded).
+        If an element is a string, then it gets attached as file (variables get automatically expanded).
         For anything else, the _attach_item method gets called.
 
         :param message: the message to attach to
@@ -233,7 +233,7 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             if isinstance(item, list):
                 self._attach_items(message, item)
             elif isinstance(item, str):
-                path = self.session.expand_placeholders(item)
+                path = self.session.expand_variables(item)
                 self._attach_file(message, path)
             else:
                 if not self._attach_item(message, item):
@@ -249,11 +249,11 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         if not self._dotenv_loaded:
             self._dotenv_loaded = True
             if self.dotenv_path is None:
-                path = self.session.expand_placeholders("{CWD}/.env")
+                path = self.session.expand_variables("{CWD}/.env")
                 self.logger().info("Loading .env from current dir: %s" % path)
                 load_dotenv(path)
             else:
-                path = self.session.expand_placeholders(self.dotenv_path)
+                path = self.session.expand_variables(self.dotenv_path)
                 self.logger().info("Loading .env: %s" % path)
                 load_dotenv(dotenv_path=path)
 
@@ -268,11 +268,11 @@ class SendEmail(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
 
             # assemble email
             message = MIMEMultipart()
-            message["From"] = self.session.expand_placeholders(self.email_from)
-            email_to = [self.session.expand_placeholders(x) for x in self.email_to]
+            message["From"] = self.session.expand_variables(self.email_from)
+            email_to = [self.session.expand_variables(x) for x in self.email_to]
             message["To"] = ", ".join(email_to)
-            message["Subject"] = self.session.expand_placeholders(self.subject)
-            body = [self.session.expand_placeholders(x) for x in self._body]
+            message["Subject"] = self.session.expand_variables(self.subject)
+            body = [self.session.expand_variables(x) for x in self._body]
             message.attach(MIMEText("\n".join(body), "plain"))
             self._attach_items(message, make_list(data))
             self._server.send_message(message)

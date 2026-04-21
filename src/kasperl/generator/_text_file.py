@@ -4,7 +4,7 @@ from typing import Optional, List, Dict
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import SingleVariableGenerator, check_file
-from seppl.placeholders import expand_placeholders
+from seppl.variables import expand_variables
 
 
 class TextFileGenerator(SingleVariableGenerator):
@@ -87,7 +87,7 @@ class TextFileGenerator(SingleVariableGenerator):
         result = super()._check()
 
         if result is None:
-            path = expand_placeholders(self.text_file)
+            path = expand_variables(self.text_file)
             result = check_file(path, "Text", raise_exc=False)
 
         return result
@@ -100,7 +100,7 @@ class TextFileGenerator(SingleVariableGenerator):
         :rtype: list
         """
         result = []
-        path = expand_placeholders(self.text_file)
+        path = expand_variables(self.text_file)
         self.logger().info("Loading: %s" % path)
         with open(path, "r") as fp:
             values = fp.readlines()

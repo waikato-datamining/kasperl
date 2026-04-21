@@ -11,7 +11,7 @@ from kasperl.api import Session
 from seppl import enumerate_plugins, is_help_requested, split_args, args_to_objects, Plugin, check_compatibility, \
     save_args
 from seppl.io import Reader, BatchFilter, MultiFilter, Writer, execute
-from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
+from seppl.variables import load_user_defined_variables, expand_variables
 from ._exec import load_pipeline, PIPELINE_FORMAT_FILE
 from ._help import CommandlineParameter, params_to_short, param_to_help, params_to_parser
 
@@ -35,7 +35,7 @@ def _default_params() -> List[CommandlineParameter]:
         CommandlineParameter(short_opt="-u", long_opt="--update_interval", metavar="INTERVAL", help="Outputs the progress every INTERVAL records (default: %d)." % DEFAULT_UPDATE_INTERVAL, type=int, default=DEFAULT_UPDATE_INTERVAL),
         CommandlineParameter(short_opt="-l", long_opt="--logging_level", choices=LOGGING_LEVELS, help="The logging level to use (default: WARN).", default=LOGGING_WARNING),
         CommandlineParameter(short_opt="-b", long_opt="--force_batch", help="Processes the data in batches.", action="store_true"),
-        CommandlineParameter(long_opt="--placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value)."),
+        CommandlineParameter(long_opt="--variables", metavar="FILE", help="The file with custom variables to load (format: key=value)."),
         CommandlineParameter(long_opt=PARAM_LOAD_PIPELINE, metavar="FILE", help="The file to load the pipeline command from."),
         CommandlineParameter(long_opt=PARAM_DUMP_PIPELINE, metavar="FILE", help="The file to dump the pipeline command in."),
     ]
@@ -217,13 +217,13 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
     session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []),
                       logger=logger)
     set_logging_level(session.logger, session.options.logging_level)
-    if session.options.placeholders is not None:
-        path = expand_placeholders(session.options.placeholders)
+    if session.options.variables is not None:
+        path = expand_variables(session.options.variables)
         if not os.path.exists(path):
-            session.logger.error("Placeholder file not found: %s" % path)
+            session.logger.error("Variable file not found: %s" % path)
         else:
-            session.logger.info("Loading custom placeholders from: %s" % path)
-            load_user_defined_placeholders(path)
+            session.logger.info("Loading custom variables from: %s" % path)
+            load_user_defined_variables(path)
     if session.options.dump_pipeline is not None:
         # remove "--dump_pipeline ..." args
         dump_args = args[:]
@@ -231,7 +231,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
         del dump_args[idx]
         del dump_args[idx]
         # save arguments
-        pipeline_path = expand_placeholders(session.options.dump_pipeline)
+        pipeline_path = expand_variables(session.options.dump_pipeline)
         save_args(dump_args, pipeline_path, handlers=handlers, prog=prog, logger=logger)
 
     return reader, filter_, writer, session

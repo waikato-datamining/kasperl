@@ -6,10 +6,10 @@ from wai.logging import LOGGING_WARNING
 
 from kasperl.api import DataFormatter, StreamWriter, make_list
 from seppl import AnyData, Plugin
-from seppl.placeholders import InputBasedPlaceholderSupporter
+from seppl.variables import InputBasedVariableSupporter
 
 
-class ConsoleWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
+class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
     def __init__(self, data_formatter: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
@@ -43,7 +43,7 @@ class ConsoleWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Prints the data to stdout using the supplied data formatter. Any other placeholders will get expanded as well."
+        return "Prints the data to stdout using the supplied data formatter. Any other variables will get expanded as well."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
@@ -103,5 +103,5 @@ class ConsoleWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         for item in make_list(data):
             item_str = self._data_formatter.format_data(item)
-            item_str = self.session.expand_placeholders(item_str)
+            item_str = self.session.expand_variables(item_str)
             print(item_str)

@@ -7,7 +7,7 @@ from wai.logging import LOGGING_WARNING
 
 from seppl import AnyData, MetaDataHandler
 from seppl.io import BatchFilter
-from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
+from seppl.variables import InputBasedVariableSupporter, variable_list
 from kasperl.api import make_list, flatten_list, SourceSupporter, NameSupporter, AnnotationHandler
 
 
@@ -43,7 +43,7 @@ def log_format_help() -> str:
         + "use \\t for tab and \\n for new-line"
 
 
-class LogData(BatchFilter, InputBasedPlaceholderSupporter):
+class LogData(BatchFilter, InputBasedVariableSupporter):
     """
     Logs information about the data passing through, either storing it in the specified file or outputting it on stdout.
     """
@@ -114,7 +114,7 @@ class LogData(BatchFilter, InputBasedPlaceholderSupporter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--log_format", metavar="FORMAT", type=str, help="The format to use for logging; " + log_format_help(), default=PH_TIMESTAMP + ": " + PH_NAME)
-        parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the logging data to; " + placeholder_list(obj=self), required=False)
+        parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the logging data to; " + variable_list(obj=self), required=False)
         parser.add_argument("-d", "--delete_on_initialize", action="store_true", help="Whether to remove any existing file when initializing the writer.")
         return parser
 
@@ -136,7 +136,7 @@ class LogData(BatchFilter, InputBasedPlaceholderSupporter):
         """
         super().initialize()
         if self.output_file is not None:
-            output_file = self.session.expand_placeholders(self.output_file)
+            output_file = self.session.expand_variables(self.output_file)
             if os.path.exists(output_file) and os.path.isfile(output_file):
                 self.logger().info("Deleting during initialization: %s" % output_file)
                 os.remove(output_file)
@@ -180,7 +180,7 @@ class LogData(BatchFilter, InputBasedPlaceholderSupporter):
             if self.output_file is None:
                 print(line)
             else:
-                output_file = self.session.expand_placeholders(self.output_file)
+                output_file = self.session.expand_variables(self.output_file)
                 with open(output_file, "a") as fp:
                     fp.write(line)
                     fp.write("\n")

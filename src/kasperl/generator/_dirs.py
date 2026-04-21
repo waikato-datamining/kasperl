@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Tuple
 
 from wai.logging import LOGGING_WARNING
 from kasperl.api import Generator
-from seppl.placeholders import expand_placeholders
+from seppl.variables import expand_variables
 
 VAR_ABSDIR = "absdir"
 VAR_RELDIR = "reldir"
@@ -131,7 +131,7 @@ class DirectoryGenerator(Generator):
 
         if result is None:
             for p in self.path:
-                p = expand_placeholders(p)
+                p = expand_variables(p)
                 if not os.path.exists(p):
                     result = "Directory does not exist: %s" % p
                 elif not os.path.isdir(p):
@@ -194,7 +194,7 @@ class DirectoryGenerator(Generator):
         # locate dirs
         paths = []
         for abs_dir in self.path:
-            abs_dir = expand_placeholders(abs_dir)
+            abs_dir = expand_variables(abs_dir)
             self._locate(os.path.abspath(abs_dir), os.path.abspath(abs_dir), self.recursive, paths)
         if self.sort:
             paths.sort()

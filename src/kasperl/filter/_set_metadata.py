@@ -6,10 +6,10 @@ from wai.logging import LOGGING_WARNING
 from seppl import MetaDataHandler, AnyData, METADATA_TYPES, METADATA_TYPE_STRING, METADATA_TYPE_BOOL, METADATA_TYPE_NUMERIC
 from seppl.io import BatchFilter
 from kasperl.api import make_list, flatten_list
-from seppl.placeholders import placeholder_list, InputBasedPlaceholderSupporter
+from seppl.variables import variable_list, InputBasedVariableSupporter
 
 
-class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
+class SetMetaData(BatchFilter, InputBasedVariableSupporter):
     """
     Sets the specified key/value pair in the meta-data.
     """
@@ -37,7 +37,7 @@ class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
         self.value = value
         self.as_type = as_type
         self.use_current = use_current
-        self._uses_placeholders = False
+        self._uses_variables = False
         self._value = None
 
     def name(self) -> str:
@@ -85,7 +85,7 @@ class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--field", type=str, help="The meta-data field to set", required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value to store in the meta-data; in case of type " + METADATA_TYPE_STRING + ", placeholders in the value get automatically expanded; " + placeholder_list(obj=self), required=False)
+        parser.add_argument("-v", "--value", type=str, help="The value to store in the meta-data; in case of type " + METADATA_TYPE_STRING + ", variables in the value get automatically expanded; " + variable_list(obj=self), required=False)
         parser.add_argument("-t", "--as_type", choices=METADATA_TYPES, default=METADATA_TYPE_STRING, help="How to interpret the value")
         parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
@@ -116,8 +116,8 @@ class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
             self.as_type = METADATA_TYPE_STRING
         if self.as_type == METADATA_TYPE_STRING:
             if ("{" in str(self.value)) and ("}" in str(self.value)):
-                self._uses_placeholders = True
-        if not self.use_current and not self._uses_placeholders:
+                self._uses_variables = True
+        if not self.use_current and not self._uses_variables:
             self._value = self._to_type(self.value)
 
     def _to_type(self, value: str) -> Any:
@@ -129,7 +129,7 @@ class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the converted value
         """
         if self.as_type == METADATA_TYPE_STRING:
-            return self.session.expand_placeholders(str(value))
+            return self.session.expand_variables(str(value))
         elif self.as_type == METADATA_TYPE_BOOL:
             return str(value).lower() == "true"
         elif self.as_type == METADATA_TYPE_NUMERIC:
@@ -148,7 +148,7 @@ class SetMetaData(BatchFilter, InputBasedPlaceholderSupporter):
 
         if self.use_current:
             value = self._to_type(data)
-        elif self._uses_placeholders:
+        elif self._uses_variables:
             value = self._to_type(self.value)
         else:
             value = self._value

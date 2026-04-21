@@ -263,8 +263,8 @@ class Rename(BatchFilter, abc.ABC):
                     for g in range(1, m.lastindex+1):
                         name_new = name_new.replace("{" + str(g) + "}", m.group(g))
 
-            # expand any other placeholders
-            name_new = self.session.expand_placeholders(name_new)
+            # expand any other variables
+            name_new = self.session.expand_variables(name_new)
 
             self.logger().info("Result: %s -> %s" % (name, name_new))
 

@@ -142,7 +142,7 @@ class AttachMetaData(BatchFilter, abc.ABC):
         :rtype: dict or None
         """
         name = os.path.splitext(name)[0] + METADATA_FORMAT_EXTENSIONS[self.metadata_format]
-        path = os.path.join(self.session.expand_placeholders(self.metadata_dir), name)
+        path = os.path.join(self.session.expand_variables(self.metadata_dir), name)
         if not os.path.exists(path):
             return None
 

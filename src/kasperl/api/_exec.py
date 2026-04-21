@@ -7,7 +7,7 @@ from typing import List, Dict, Optional, Union
 from wai.logging import init_logging, set_logging_level, add_logging_level
 
 from seppl import split_cmdline, Plugin, load_args, remove_comments
-from seppl.placeholders import load_user_defined_placeholders, expand_placeholders
+from seppl.variables import load_user_defined_variables, expand_variables
 from ._generator import compile_generator_vars_list
 from ._help import CommandlineParameter, params_to_parser
 
@@ -56,7 +56,7 @@ def load_pipeline(pipeline: Union[str, List[str]], pipeline_format: str = PIPELI
             pipeline_file = pipeline
         else:
             pipeline_file = shlex.join(pipeline)
-        pipeline_file = expand_placeholders(pipeline_file)
+        pipeline_file = expand_variables(pipeline_file)
         result = load_args(pipeline_file, logger=logger)
 
     else:
@@ -179,7 +179,7 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     parser.add_argument("--exec_generator", metavar="GENERATOR", help="The generator plugin(s) to use, incl. their options. Flag needs to be specified for each generator.", default=None, type=str, required=True, action="append")
     parser.add_argument("--exec_dry_run", action="store_true", help="Applies the generator to the pipeline template and only outputs it on stdout.", required=False)
     parser.add_argument("--exec_prefix", metavar="PREFIX", help="The string to prefix the pipeline with when in dry-run mode.", required=False, default=None, type=str)
-    parser.add_argument("--exec_placeholders", metavar="FILE", help="The file with custom placeholders to load (format: key=value).", required=False, default=None, type=str)
+    parser.add_argument("--exec_variables", metavar="FILE", help="The file with custom variables to load (format: key=value).", required=False, default=None, type=str)
     parser.add_argument(PARAM_EXEC_FORMAT, choices=PIPELINE_FORMATS, required=False, default=PIPELINE_FORMAT_CMDLINE,
                         help="The format that the pipeline is in. "
                              + "The format '" + PIPELINE_FORMAT_CMDLINE + "' interprets the remaining "
@@ -199,21 +199,21 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
     if logger is not None:
         set_logging_level(logger, parsed.logging_level)
 
-    if parsed.exec_placeholders is not None:
-        path = expand_placeholders(parsed.exec_placeholders)
+    if parsed.exec_variables is not None:
+        path = expand_variables(parsed.exec_variables)
         if not os.path.exists(path):
-            msg = "Placeholder file not found: %s" % path
+            msg = "Variable file not found: %s" % path
             if logger is not None:
                 logger.error(msg)
             else:
                 print(msg)
         else:
-            msg = "Loading custom placeholders from: %s" % path
+            msg = "Loading custom variables from: %s" % path
             if logger is not None:
                 logger.info(msg)
             else:
                 print(msg)
-            load_user_defined_placeholders(path)
+            load_user_defined_variables(path)
 
     # custom pre-execution hook?
     if pre_exec is not None:

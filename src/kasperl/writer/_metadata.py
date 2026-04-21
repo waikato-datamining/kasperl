@@ -10,7 +10,7 @@ from wai.logging import LOGGING_WARNING
 from kasperl.api import make_list, SplittableStreamWriter
 
 from seppl import AnyData, MetaDataHandler
-from seppl.placeholders import placeholder_list, InputBasedPlaceholderSupporter
+from seppl.variables import variable_list, InputBasedVariableSupporter
 
 
 OUTPUT_FORMAT_TEXT = "text"
@@ -28,7 +28,7 @@ OUTPUT_FORMAT_EXTENSIONS = {
 }
 
 
-class MetaDataWriter(SplittableStreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
+class MetaDataWriter(SplittableStreamWriter, InputBasedVariableSupporter, abc.ABC):
 
     def __init__(self, output_dir: str = None, output_format: str = None,
                  split_names: List[str] = None, split_ratios: List[int] = None, split_group: str = None,
@@ -81,7 +81,7 @@ class MetaDataWriter(SplittableStreamWriter, InputBasedPlaceholderSupporter, abc
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-o", "--output", type=str, help="The directory to store the meta-data in. Any defined splits get added beneath there. " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-o", "--output", type=str, help="The directory to store the meta-data in. Any defined splits get added beneath there. " + variable_list(obj=self), required=True)
         parser.add_argument("-f", "--output_format", type=str, help="The format to use for the output, available formats: %s" % ", ".join(OUTPUT_FORMATS), required=False, default=OUTPUT_FORMAT_TEXT)
         return parser
 
@@ -176,7 +176,7 @@ class MetaDataWriter(SplittableStreamWriter, InputBasedPlaceholderSupporter, abc
                 self.logger().warning("Failed to determine name of item: %s" % str(item))
                 continue
 
-            sub_dir = self.session.expand_placeholders(self.output_dir)
+            sub_dir = self.session.expand_variables(self.output_dir)
             if self.splitter is not None:
                 split = self.splitter.next(item=name)
                 sub_dir = os.path.join(sub_dir, split)

@@ -9,11 +9,11 @@ from ._discard_by_name import DiscardByName
 from ._get_metadata import GetMetaData
 from ._list_to_sequence import ListToSequence
 from ._log_data import LogData
-from ._log_placeholder import LogPlaceholder
+from ._log_variable import LogVariable
 from ._max_records import MaxRecords
 from ._metadata import MetaData
 from ._metadata_from_name import MetaDataFromName
-from ._metadata_to_placeholder import MetaDataToPlaceholder
+from ._metadata_to_variable import MetaDataToVariable
 from ._move_files import MoveFiles
 from ._passthrough import PassThrough
 from ._randomize_records import RandomizeRecords
@@ -22,7 +22,7 @@ from ._rename import Rename, RENAME_PLACEHOLDERS, RENAME_PH_NAME, RENAME_PH_COUN
 from ._sample import Sample
 from ._sanitize_name import SanitizeName
 from ._set_metadata import SetMetaData
-from ._set_placeholder import SetPlaceholder
+from ._set_variable import SetVariable
 from ._sleep import Sleep
 from ._split_records import SplitRecords
 from ._stop import Stop

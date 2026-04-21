@@ -7,10 +7,10 @@ from wai.logging import LOGGING_WARNING
 
 from kasperl.api import make_list, flatten_list
 from seppl.io import BatchFilter
-from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
+from seppl.variables import InputBasedVariableSupporter, variable_list
 
 
-class CopyFiles(BatchFilter, InputBasedPlaceholderSupporter):
+class CopyFiles(BatchFilter, InputBasedVariableSupporter):
     """
     Copies the files it receives into the specified target directory and forwards the new files.
     """
@@ -74,7 +74,7 @@ class CopyFiles(BatchFilter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-t", "--target_dir", metavar="DIR", type=str, help="The directory to copy the files to. " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-t", "--target_dir", metavar="DIR", type=str, help="The directory to copy the files to. " + variable_list(obj=self), required=True)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -126,8 +126,8 @@ class CopyFiles(BatchFilter, InputBasedPlaceholderSupporter):
         :param data: the record(s) to process
         :return: the potentially updated record(s)
         """
-        # apply placeholders
-        target_path = self.session.expand_placeholders(self.target_dir)
+        # apply variables
+        target_path = self.session.expand_variables(self.target_dir)
         if target_path != self.target_dir:
             self.logger().info("Expanded target dir: %s" % target_path)
         if not os.path.exists(target_path):

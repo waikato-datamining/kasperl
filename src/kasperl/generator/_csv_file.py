@@ -5,7 +5,7 @@ from typing import Optional, List, Dict
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Generator, check_file
-from seppl.placeholders import expand_placeholders
+from seppl.variables import expand_variables
 
 
 class CSVFileGenerator(Generator):
@@ -76,7 +76,7 @@ class CSVFileGenerator(Generator):
         result = super()._check()
 
         if result is None:
-            path = expand_placeholders(self.csv_file)
+            path = expand_variables(self.csv_file)
             result = check_file(path, "CSV", raise_exc=False)
 
         return result
@@ -90,7 +90,7 @@ class CSVFileGenerator(Generator):
         """
         result = []
 
-        path = expand_placeholders(self.csv_file)
+        path = expand_variables(self.csv_file)
         self.logger().info("Loading: %s" % path)
         with open(path, "r") as fp:
             reader = csv.DictReader(fp)

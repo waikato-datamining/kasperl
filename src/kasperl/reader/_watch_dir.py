@@ -12,7 +12,7 @@ from wai.logging import LOGGING_WARNING
 from kasperl.api import MetaFileReader, check_dir
 from seppl import AnyData, Plugin
 from seppl.io import InfiniteReader
-from seppl.placeholders import PlaceholderSupporter, placeholder_list
+from seppl.variables import VariableSupporter, variable_list
 
 GLOB_NAME_PLACEHOLDER = "{NAME}"
 """ The glob placeholder for identifying other input files. """
@@ -66,7 +66,7 @@ class Handler(watchdog.events.PatternMatchingEventHandler):
                 self.owner.add_file(event.src_path)
 
 
-class WatchDir(MetaFileReader, InfiniteReader, PlaceholderSupporter, abc.ABC):
+class WatchDir(MetaFileReader, InfiniteReader, VariableSupporter, abc.ABC):
 
     def __init__(self, dir_in: str = None, dir_out: str = None, check_wait: float = None, process_wait: float = None,
                  action: str = None, extensions: List[str] = None, other_input_files: List[str] = None,
@@ -151,8 +151,8 @@ class WatchDir(MetaFileReader, InfiniteReader, PlaceholderSupporter, abc.ABC):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-i", "--dir_in", type=str, help="The directory to poll; " + placeholder_list(obj=self), required=True)
-        parser.add_argument("-o", "--dir_out", type=str, help="The directory to move the files to; " + placeholder_list(obj=self), required=False)
+        parser.add_argument("-i", "--dir_in", type=str, help="The directory to poll; " + variable_list(obj=self), required=True)
+        parser.add_argument("-o", "--dir_out", type=str, help="The directory to move the files to; " + variable_list(obj=self), required=False)
         parser.add_argument("-w", "--check_wait", type=float, help="The number of seconds to wait before checking whether any files were discovered.", required=False, default=0.01)
         parser.add_argument("-W", "--process_wait", type=float, help="The number of seconds to wait before processing the polled files (e.g., waiting for files to be fully written)", required=False, default=0.0)
         parser.add_argument("-a", "--action", choices=WATCH_ACTIONS, help="The action to apply to the input files; 'move' moves the files to --dir_out directory", required=False, default=WATCH_ACTION_MOVE)
@@ -227,10 +227,10 @@ class WatchDir(MetaFileReader, InfiniteReader, PlaceholderSupporter, abc.ABC):
             raise Exception("No event(s) specified!")
 
         # check dirs
-        self._actual_dir_in = self.session.expand_placeholders(self.dir_in)
+        self._actual_dir_in = self.session.expand_variables(self.dir_in)
         check_dir(self._actual_dir_in, "Input")
         if self.action == WATCH_ACTION_MOVE:
-            self._actual_dir_out = self.session.expand_placeholders(self.dir_out)
+            self._actual_dir_out = self.session.expand_variables(self.dir_out)
             check_dir(self._actual_dir_out, "Output")
 
     def add_file(self, path: str):

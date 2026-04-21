@@ -5,10 +5,10 @@ from typing import List, Iterable
 from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
-from seppl.placeholders import placeholder_list, PlaceholderSupporter
+from seppl.variables import variable_list, VariableSupporter
 
 
-class TextFileReader(Reader, PlaceholderSupporter):
+class TextFileReader(Reader, VariableSupporter):
 
     def __init__(self, path: str = None, logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
@@ -51,7 +51,7 @@ class TextFileReader(Reader, PlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--path", metavar="FILE", type=str, help="The file to load; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-p", "--path", metavar="FILE", type=str, help="The file to load; " + variable_list(obj=self), required=True)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -88,7 +88,7 @@ class TextFileReader(Reader, PlaceholderSupporter):
         :return: the data
         :rtype: Iterable
         """
-        path = self.session.expand_placeholders(self.path)
+        path = self.session.expand_variables(self.path)
         if not os.path.exists(path):
             raise Exception("Path does not exist: %s" % path)
         if not os.path.isfile(path):

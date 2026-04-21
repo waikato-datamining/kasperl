@@ -2,10 +2,10 @@ import os
 from typing import List
 
 from kasperl.api import make_list, StreamWriter
-from seppl.placeholders import InputBasedPlaceholderSupporter
+from seppl.variables import InputBasedVariableSupporter
 
 
-class DeleteFiles(StreamWriter, InputBasedPlaceholderSupporter):
+class DeleteFiles(StreamWriter, InputBasedVariableSupporter):
 
     def name(self) -> str:
         """
@@ -44,7 +44,7 @@ class DeleteFiles(StreamWriter, InputBasedPlaceholderSupporter):
             if isinstance(item, list):
                 self.write_stream(item)
                 return
-            path = self.session.expand_placeholders(item)
+            path = self.session.expand_variables(item)
             if not os.path.exists(path):
                 self.logger().warning("File does not exist: %s" % path)
                 continue

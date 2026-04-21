@@ -12,7 +12,7 @@ from wai.logging import LOGGING_WARNING
 
 from kasperl.api import Reader
 from seppl.io import InfiniteReader
-from seppl.placeholders import placeholder_list, PlaceholderSupporter, add_placeholder
+from seppl.variables import variable_list, VariableSupporter, add_variable
 
 
 IMAP_HOST = "IMAP_HOST"
@@ -43,12 +43,12 @@ MESSAGE_ACTIONS = [
 ]
 
 
-class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
+class GetEmail(Reader, InfiniteReader, VariableSupporter):
 
     def __init__(self, dotenv_path: str = None, folder: str = None, only_unseen: bool = None, action: str = None,
                  regexp: str = None, output_dir: str = None, poll_wait: float = None,
                  poll_count: int = None, poll_wait_slow: float = None, max_poll: int = None,
-                 from_placeholder: str = None, subject_placeholder: str = None,
+                 from_variable: str = None, subject_variable: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the reader.
@@ -73,10 +73,10 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :type poll_wait_slow: float
         :param max_poll: the number of times to poll (<= 0 for infinite)
         :type max_poll: int
-        :param from_placeholder: the placeholder name for storing the FROM email address under
-        :type from_placeholder: str
-        :param subject_placeholder: the placeholder name for storing the SUBJECT under
-        :type subject_placeholder: str
+        :param from_variable: the variable name for storing the FROM email address under
+        :type from_variable: str
+        :param subject_variable: the variable name for storing the SUBJECT under
+        :type subject_variable: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -93,8 +93,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.poll_count = poll_count
         self.poll_wait_slow = poll_wait_slow
         self.max_poll = max_poll
-        self.from_placeholder = from_placeholder
-        self.subject_placeholder = subject_placeholder
+        self.from_variable = from_variable
+        self.subject_variable = subject_variable
         self._dotenv_loaded = False
         self._server = None
         self._polled = None
@@ -131,18 +131,18 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the IMAP environment variables form (" + "|".join(IMAP_ENVS) + "); tries to load .env from the current directory if not specified; " + placeholder_list(obj=self), required=False, default=None)
+        parser.add_argument("-d", "--dotenv_path", metavar="FILE", type=str, help="The .env file to load the IMAP environment variables form (" + "|".join(IMAP_ENVS) + "); tries to load .env from the current directory if not specified; " + variable_list(obj=self), required=False, default=None)
         parser.add_argument("-f", "--folder", metavar="FOLDER", type=str, help="The IMAP folder to obtain emails from.", required=False, default="INBOX")
         parser.add_argument("-u", "--only_unseen", action="store_true", help="Whether to only retrieve unseen/new emails.", required=False)
         parser.add_argument("-a", "--action", choices=MESSAGE_ACTIONS, default=MESSAGE_ACTION_NONE, help="The action to apply to the retrieved emails.", required=False)
         parser.add_argument("-r", "--regexp", metavar="REGEXP", type=str, help="The regular expression that the attachment file names must match.", required=False, default=None)
-        parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-o", "--output_dir", metavar="DIR", type=str, help="The directory to store the attachments in; " + variable_list(obj=self), required=True)
         parser.add_argument("-w", "--poll_wait", metavar="SECONDS", type=float, help="The poll interval in seconds", required=False, default=DEFAULT_POLL_WAIT)
         parser.add_argument("-W", "--poll_wait_slow", metavar="SECONDS", type=float, help="The poll interval in seconds during slow operation", required=False, default=DEFAULT_POLL_WAIT_SLOW)
         parser.add_argument("-c", "--poll_count", metavar="THRESHOLD", type=int, help="The maximum number of 'empty' polls that are allowed before switching from 'poll_wait' to 'poll_wait_slow'.", required=False, default=DEFAULT_POLL_COUNT)
         parser.add_argument("-m", "--max_poll", metavar="MAX", type=int, help="The maximum number of times to poll the folder; use <= for infinite polling.")
-        parser.add_argument("-F", "--from_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the FROM email address under, without curly brackets.", required=False, default=None)
-        parser.add_argument("-S", "--subject_placeholder", metavar="PLACEHOLDER", type=str, help="The optional placeholder name to store the SUBJECT under, without curly brackets.", required=False, default=None)
+        parser.add_argument("-F", "--from_variable", "--from_placeholder", metavar="VARIABLE", dest="from_variable", type=str, help="The optional variable name to store the FROM email address under, without curly brackets.", required=False, default=None)
+        parser.add_argument("-S", "--subject_variable", "--subject_placeholder", metavar="VARIABLE", dest="subject_variable", type=str, help="The optional variable name to store the SUBJECT under, without curly brackets.", required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -163,8 +163,8 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         self.poll_wait_slow = ns.poll_wait_slow
         self.poll_count = ns.poll_count
         self.max_poll = ns.max_poll
-        self.from_placeholder = ns.from_placeholder
-        self.subject_placeholder = ns.subject_placeholder
+        self.from_variable = ns.from_variable
+        self.subject_variable = ns.subject_variable
         self._dotenv_loaded = False
         self._server = None
 
@@ -220,7 +220,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         :return: the data
         :rtype: Iterable
         """
-        output_dir = self.session.expand_placeholders(self.output_dir)
+        output_dir = self.session.expand_variables(self.output_dir)
         if not os.path.exists(output_dir):
             raise Exception("Output directory does not exist: %s" % output_dir)
 
@@ -228,11 +228,11 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
         if not self._dotenv_loaded:
             self._dotenv_loaded = True
             if self.dotenv_path is None:
-                path = self.session.expand_placeholders("{CWD}/.env")
+                path = self.session.expand_variables("{CWD}/.env")
                 self.logger().info("Loading .env from current dir: %s" % path)
                 load_dotenv(path)
             else:
-                path = self.session.expand_placeholders(self.dotenv_path)
+                path = self.session.expand_variables(self.dotenv_path)
                 self.logger().info("Loading .env: %s" % path)
                 load_dotenv(dotenv_path=path)
 
@@ -314,7 +314,7 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
                                                 if not re.match(self.regexp, filename):
                                                     self.logger().info("Skipping attachment: %s" % filename)
                                                     continue
-                                            output_file = os.path.join(self.session.expand_placeholders(self.output_dir), filename)
+                                            output_file = os.path.join(self.session.expand_variables(self.output_dir), filename)
                                             self.logger().info("Saving attachment to: %s" % output_file)
                                             with open(output_file, "wb") as fp:
                                                 fp.write(part.get_payload(decode=True))
@@ -338,12 +338,12 @@ class GetEmail(Reader, InfiniteReader, PlaceholderSupporter):
 
                     # forward file names of downloaded attachments
                     if len(files) > 0:
-                        if (self.from_placeholder is not None) and (from_ is not None):
-                            self.logger().info("Setting placeholder '%s' to: %s" % (self.from_placeholder, from_))
-                            add_placeholder(self.from_placeholder, "from get-email", False, lambda i: from_)
-                        if (self.subject_placeholder is not None) and (subject_ is not None):
-                            self.logger().info("Setting placeholder '%s' to: %s" % (self.subject_placeholder, subject_))
-                            add_placeholder(self.subject_placeholder, "from get-email", False, lambda i: subject_)
+                        if (self.from_variable is not None) and (from_ is not None):
+                            self.logger().info("Setting variable '%s' to: %s" % (self.from_variable, from_))
+                            add_variable(self.from_variable, "from get-email", False, lambda i: from_)
+                        if (self.subject_variable is not None) and (subject_ is not None):
+                            self.logger().info("Setting variable '%s' to: %s" % (self.subject_variable, subject_))
+                            add_variable(self.subject_variable, "from get-email", False, lambda i: subject_)
                         yield files
         except:
             self.logger().error("Failed to get emails!", exc_info=True)

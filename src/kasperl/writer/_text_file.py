@@ -7,11 +7,11 @@ from typing import List, Dict
 from wai.logging import LOGGING_WARNING
 
 from seppl import AnyData, Plugin
-from seppl.placeholders import InputBasedPlaceholderSupporter, placeholder_list
+from seppl.variables import InputBasedVariableSupporter, variable_list
 from kasperl.api import make_list, StreamWriter, DataFormatter
 
 
-class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
+class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
     def __init__(self, data_formatter: str = None, output_file: str = None, append: bool = None, delete_on_initialize: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
@@ -54,7 +54,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Applies the specified data formatter to the incoming data and stores the result in the specified text file. Any other placeholders will get expanded in the data formatter output as well."
+        return "Applies the specified data formatter to the incoming data and stores the result in the specified text file. Any other variables will get expanded in the data formatter output as well."
 
     def _create_argparser(self) -> argparse.ArgumentParser:
         """
@@ -65,7 +65,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--data_formatter", type=str, help="The data formatter to apply", required=False, default="df-simple-string")
-        parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the data to; " + placeholder_list(obj=self), required=True)
+        parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the data to; " + variable_list(obj=self), required=True)
         parser.add_argument("-a", "--append", action="store_true", help="Whether to append the file rather than overwrite it.")
         parser.add_argument("-d", "--delete_on_initialize", action="store_true", help="Whether to remove any existing file when initializing the writer.")
         return parser
@@ -102,7 +102,7 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
             self.data_formatter = "df-simple-string"
         if self._data_formatter is None:
             self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
-        output_file = self.session.expand_placeholders(self.output_file)
+        output_file = self.session.expand_variables(self.output_file)
         if os.path.exists(output_file) and os.path.isfile(output_file):
             self.logger().info("Deleting during initialization: %s" % output_file)
             os.remove(output_file)
@@ -124,8 +124,8 @@ class TextFileWriter(StreamWriter, InputBasedPlaceholderSupporter, abc.ABC):
         """
         for item in make_list(data):
             item_str = self._data_formatter.format_data(item)
-            item_str = self.session.expand_placeholders(item_str)
-            output_file = self.session.expand_placeholders(self.output_file)
+            item_str = self.session.expand_variables(item_str)
+            output_file = self.session.expand_variables(self.output_file)
 
             self.logger().info("Writing to: %s" % output_file)
             if self.logger().isEnabledFor(logging.DEBUG):

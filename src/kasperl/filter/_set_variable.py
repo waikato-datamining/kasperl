@@ -1,22 +1,22 @@
 import argparse
 from typing import List
 
-from seppl import AnyData
+from seppl import AnyData, AliasSupporter
 from seppl.io import BatchFilter
-from seppl.placeholders import add_placeholder, InputBasedPlaceholderSupporter, placeholder_list
+from seppl.variables import add_variable, InputBasedVariableSupporter, variable_list
 from wai.logging import LOGGING_WARNING
 
 
-class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
+class SetVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
 
-    def __init__(self, placeholder: str = None, value: str = None, use_current: bool = None,
+    def __init__(self, variable: str = None, value: str = None, use_current: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
-        :param placeholder: the name of the placeholder (without curly brackets)
-        :type placeholder: str
-        :param value: the value of the placeholder
+        :param variable: the name of the variable (without curly brackets)
+        :type variable: str
+        :param value: the value of the variable
         :type value: str
         :param use_current: whether to use the current data passing through instead of the value
         :type use_current: bool
@@ -26,7 +26,7 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :type logging_level: str
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
-        self.placeholder = placeholder
+        self.variable = variable
         self.value = value
         self.use_current = use_current
 
@@ -37,7 +37,16 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the name
         :rtype: str
         """
-        return "set-placeholder"
+        return "set-variable"
+
+    def aliases(self) -> List[str]:
+        """
+        Returns the aliases under which the plugin is known under/available as well.
+
+        :return: the aliases
+        :rtype: list
+        """
+        return ["set-placeholder"]
 
     def description(self) -> str:
         """
@@ -46,7 +55,7 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :return: the description
         :rtype: str
         """
-        return "Sets the placeholder to the specified value when data passes through. The value can contain other placeholders, which get expanded each time data passes through. Can use the data passing through instead of specified value as well."
+        return "Sets the variable to the specified value when data passes through. The value can contain other variables, which get expanded each time data passes through. Can use the data passing through instead of specified value as well."
 
     def accepts(self) -> List:
         """
@@ -74,8 +83,8 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :rtype: argparse.ArgumentParser
         """
         parser = super()._create_argparser()
-        parser.add_argument("-p", "--placeholder", type=str, help="The name of the placeholder, without curly brackets.", default=None, required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value of the placeholder, may contain other placeholders. " + placeholder_list(obj=self), default=None, required=False)
+        parser.add_argument("-V", "-p", "--variable", "--placeholder", dest="variable", type=str, help="The name of the variable, without curly brackets.", default=None, required=True)
+        parser.add_argument("-v", "--value", type=str, help="The value of the variable, may contain other variables. " + variable_list(obj=self), default=None, required=False)
         parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
 
@@ -87,7 +96,7 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         :type ns: argparse.Namespace
         """
         super()._apply_args(ns)
-        self.placeholder = ns.placeholder
+        self.variable = ns.variable
         self.value = ns.value
         self.use_current = ns.use_current
 
@@ -96,10 +105,10 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if self.placeholder is None:
-            raise Exception("No placeholder name provided!")
+        if self.variable is None:
+            raise Exception("No variable name provided!")
         if (not self.use_current) and (self.value is None):
-            raise Exception("No placeholder value provided!")
+            raise Exception("No variable value provided!")
 
     def _do_process(self, data):
         """
@@ -112,7 +121,7 @@ class SetPlaceholder(BatchFilter, InputBasedPlaceholderSupporter):
             value = str(data)
         else:
             value = self.value
-        value = self.session.expand_placeholders(value)
-        self.logger().info("%s -> %s" % (self.placeholder, value))
-        add_placeholder(self.placeholder, "no description", False, lambda i: value)
+        value = self.session.expand_variables(value)
+        self.logger().info("%s -> %s" % (self.variable, value))
+        add_variable(self.variable, "no description", False, lambda i: value)
         return data
