@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.0.2 (????-??-??)
+0.0.2 (2026-04-22)
 ------------------
 
 - the `locate_file` method now supports looking for files with different image/annotation prefixes
