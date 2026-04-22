@@ -42,6 +42,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.api.SingleVariableGenerator
 * kasperl.generator.CSVFileGenerator
 * kasperl.generator.DirectoryGenerator
+* kasperl.generator.FileGenerator
 * kasperl.generator.ListGenerator
 * kasperl.generator.NullGenerator
 * kasperl.generator.PromptGenerator
@@ -64,6 +65,7 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.reader.GetEmail
 * kasperl.reader.ListFiles
 * kasperl.reader.PollDir (abstract)
+* kasperl.reader.ShellExec
 * kasperl.reader.Start
 * kasperl.reader.StorageReader
 * kasperl.reader.TextFile
@@ -78,13 +80,17 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.Block
 * kasperl.filter.CheckDuplicateFilenames
 * kasperl.filter.CopyFiles
+* kasperl.filter.CountData
 * kasperl.filter.DeleteStorage
 * kasperl.filter.DiscardByName
+* kasperl.filter.GetMetaData
 * kasperl.filter.ListToSequence
+* kasperl.filter.LogData
+* kasperl.filter.LogVariable
 * kasperl.filter.MaxRecords
 * kasperl.filter.MetaData
 * kasperl.filter.MetaDataFromName
-* kasperl.filter.MetaDataToPlaceholder
+* kasperl.filter.MetaDataToVariable
 * kasperl.filter.MoveFiles
 * kasperl.filter.PassThrough
 * kasperl.filter.RandomizeRecords
@@ -93,7 +99,8 @@ functionality. `(mixin)` classes can be added to relevant classes.
 * kasperl.filter.Sample
 * kasperl.filter.SanitizeName (abstract)
 * kasperl.filter.SetMetaData
-* kasperl.filter.SetPlaceholder
+* kasperl.filter.SetVariable
+* kasperl.filter.Sleep
 * kasperl.filter.SplitRecords
 * kasperl.filter.Stop
 * kasperl.filter.StorageUpdater
