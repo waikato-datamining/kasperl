@@ -68,6 +68,10 @@ def load_pipeline(pipeline: Union[str, List[str]], pipeline_format: str = PIPELI
             if result[0].startswith(convert_prog):
                 result = result[1:]
 
+    # expand environment variables
+    for i in range(len(result)):
+        result[i] = os.path.expandvars(result[i])
+
     if logger is not None:
         logger.info("Pipeline: %s" % str(result))
 
