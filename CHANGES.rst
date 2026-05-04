@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.0.3 (????-??-??)
+0.0.3 (2026-05-05)
 ------------------
 
 - the `load_pipeline` method now automatically expands environment variables (`$name` or `${name}`, under Windows
