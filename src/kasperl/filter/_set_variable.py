@@ -1,10 +1,27 @@
 import argparse
+import os
 from typing import List
 
+from kasperl.api import NameSupporter
 from seppl import AnyData, AliasSupporter
 from seppl.io import BatchFilter
 from seppl.variables import add_variable, InputBasedVariableSupporter, variable_list
 from wai.logging import LOGGING_WARNING
+
+
+VAR_CURRENT_NAMEEXT = "{CURRENT_NAMEEXT}"
+VAR_CURRENT_NAMENOEXT = "{CURRENT_NAMENOEXT}"
+VAR_CURRENT_EXT = "{CURRENT_EXT}"
+VARIABLES = [
+    VAR_CURRENT_NAMEEXT,
+    VAR_CURRENT_NAMENOEXT,
+    VAR_CURRENT_EXT,
+]
+VARIABLES_DESCRIPTION = {
+    VAR_CURRENT_NAMEEXT: "The name (incl extension) of the current name supporter, i.e., 'file.txt' of item '/some/where/file.txt'.",
+    VAR_CURRENT_NAMENOEXT: "The name (excl extension) of the current name supporter, i.e., 'file' of item '/some/where/file.txt'.",
+    VAR_CURRENT_EXT: "The extension of the current name supporter (incl dot), i.e., '.txt' of input '/some/where/file.txt'.",
+}
 
 
 class SetVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
@@ -84,7 +101,7 @@ class SetVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-V", "-p", "--variable", "--placeholder", dest="variable", type=str, help="The name of the variable, without curly brackets.", default=None, required=True)
-        parser.add_argument("-v", "--value", type=str, help="The value of the variable, may contain other variables. " + variable_list(obj=self), default=None, required=False)
+        parser.add_argument("-v", "--value", type=str, help="The value of the variable, may contain other variables. " + variable_list(obj=self) + "; supports these additional variables if the item passing through implements kasperl.api.NameSupporter: " + ", ".join(VARIABLES), default=None, required=False)
         parser.add_argument("-u", "--use_current", action="store_true", help="Whether to use the data passing through instead of the specified value.", required=False)
         return parser
 
@@ -122,6 +139,19 @@ class SetVariable(BatchFilter, InputBasedVariableSupporter, AliasSupporter):
         else:
             value = self.value
         value = self.session.expand_variables(value)
+
+        # can we apply the additional variables?
+        if isinstance(data, NameSupporter) and ("{" in value):
+            for var in VARIABLES:
+                if var == VAR_CURRENT_NAMEEXT:
+                    value = value.replace(VAR_CURRENT_NAMEEXT, os.path.basename(data.get_name()))
+                elif var == VAR_CURRENT_NAMENOEXT:
+                    value = value.replace(VAR_CURRENT_NAMENOEXT, os.path.splitext(os.path.basename(data.get_name()))[0])
+                elif var == VAR_CURRENT_EXT:
+                    value = value.replace(VAR_CURRENT_EXT, os.path.splitext(data.get_name())[0])
+                else:
+                    self.logger().warning("Unhandled variable: %s" % var)
+
         self.logger().info("%s -> %s" % (self.variable, value))
         add_variable(self.variable, "no description", False, lambda i: value)
         return data
