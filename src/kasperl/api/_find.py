@@ -117,7 +117,7 @@ def find_files(paths: List[str], output: str, recursive=False,
     # locate
     all_files = []
     for d in paths:
-        _find(d, recursive, match, not_match, all_files)
+        _find(d, recursive, match, not_match, all_files, logger=logger)
     if logger is not None:
         logger.info("# files found: %d" % len(all_files))
 
