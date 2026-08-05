@@ -69,8 +69,7 @@ def _find(path: str, recursive: bool, match: List[str], not_match: List[str], fi
                 _find(full, recursive, match, not_match, files, logger=logger)
                 if logger is not None:
                     logger.info("Back to: %s" % path)
-            else:
-                continue
+            continue
 
         # match?
         is_match = True
@@ -85,6 +84,8 @@ def _find(path: str, recursive: bool, match: List[str], not_match: List[str], fi
                     is_match = False
                     break
         if is_match:
+            if (logger is not None) and logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Match: %s" % full)
             files.append(full)
 
 
