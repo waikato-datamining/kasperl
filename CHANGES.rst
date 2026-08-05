@@ -7,6 +7,7 @@ Changelog
 - the `set-variable` filter now offers the additional variables `{CURRENT_NAMEEXT}`, `{CURRENT_NAMENOEXT}`,
   and `{CURRENT_EXT}` if the current item passing through implements `kasperl.api.NameSupporter`
 - fixed handling of logger instance in `_find` method
+- `_find` method no longer adds directories to the list of files in recursive mode
 
 
 0.0.3 (2026-05-05)
