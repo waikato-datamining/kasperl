@@ -66,8 +66,9 @@ def _find(path: str, recursive: bool, match: List[str], not_match: List[str], fi
         # dir?
         if os.path.isdir(full):
             if recursive:
-                _find(full, recursive, match, not_match, files)
-                logger.info("Back to: %s" % path)
+                _find(full, recursive, match, not_match, files, logger=logger)
+                if logger is not None:
+                    logger.info("Back to: %s" % path)
             else:
                 continue
 

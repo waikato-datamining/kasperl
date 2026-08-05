@@ -6,6 +6,7 @@ Changelog
 
 - the `set-variable` filter now offers the additional variables `{CURRENT_NAMEEXT}`, `{CURRENT_NAMENOEXT}`,
   and `{CURRENT_EXT}` if the current item passing through implements `kasperl.api.NameSupporter`
+- fixed handling of logger instance in `_find` method
 
 
 0.0.3 (2026-05-05)
