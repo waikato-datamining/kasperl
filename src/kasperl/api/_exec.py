@@ -105,6 +105,11 @@ def save_pipeline(pipeline: List[str], path: str, pipeline_format: str = PIPELIN
     try:
         if logger is not None:
             logger.info("Saving pipeline to: %s" % path)
+        basedir = os.path.dirname(path)
+        if not os.path.exists(basedir):
+            if logger is not None:
+                logger.info("Creating dir: %s" % basedir)
+            os.makedirs(basedir)
         with open(path, "w") as fp:
             fp.write(pipeline)
             fp.write("\n")
