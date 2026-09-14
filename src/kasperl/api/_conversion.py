@@ -214,8 +214,7 @@ def parse_conversion_args(args: List[str], prog: str, description: str,
         params.extend(additional_params)
     parser = argparse.ArgumentParser()
     params_to_parser(parser, params)
-    session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []),
-                      logger=logger)
+    session = Session(options=parser.parse_args(parsed[""] if ("" in parsed) else []), logger=logger)
     set_logging_level(session.logger, session.options.logging_level)
     if session.options.variables is not None:
         path = expand_variables(session.options.variables)
