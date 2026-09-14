@@ -8,6 +8,8 @@ Changelog
   and `{CURRENT_EXT}` if the current item passing through implements `kasperl.api.NameSupporter`
 - fixed handling of logger instance in `_find` method
 - `_find` method no longer adds directories to the list of files in recursive mode
+- the `execute_pipeline` method now takes an optional `dump_pipeline` path string and `dump_pipeline_format`
+  for saving the generated pipeline
 
 
 0.0.3 (2026-05-05)

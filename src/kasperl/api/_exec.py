@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import shlex
+import traceback
 from typing import List, Dict, Optional, Union
 
 from wai.logging import init_logging, set_logging_level, add_logging_level
@@ -78,6 +79,44 @@ def load_pipeline(pipeline: Union[str, List[str]], pipeline_format: str = PIPELI
     return result
 
 
+def save_pipeline(pipeline: List[str], path: str, pipeline_format: str = PIPELINE_FORMAT_CMDLINE,
+                  logger: logging.Logger = None) -> bool:
+    """
+    Saves the pipeline to the specific file.
+
+    :param pipeline: the pipeline to save
+    :type pipeline: list
+    :param path: the file to save to
+    :type path: str
+    :param pipeline_format: the format the pipeline is in
+    :type pipeline_format: str
+    :param logger: the optional logger to use
+    :type logger: logging.Logger
+    :return: whether the pipeline was saved successfully
+    :rtype: bool
+    """
+    if pipeline_format == PIPELINE_FORMAT_CMDLINE:
+        pipeline = shlex.join(pipeline)
+    elif pipeline_format == PIPELINE_FORMAT_FILE:
+        pipeline = "\n".join(pipeline)
+    else:
+        raise Exception("Unsupported pipeline format: %s" % pipeline_format)
+
+    try:
+        if logger is not None:
+            logger.info("Saving pipeline to: %s" % path)
+        with open(path, "w") as fp:
+            fp.write(pipeline)
+            fp.write("\n")
+    except:
+        if logger is not None:
+            logger.exception("Failed to save pipeline to: %s" % path)
+        else:
+            print("Failed to save pipeline to: %s" % path)
+            traceback.print_exc()
+        return False
+
+
 def _expand_vars(pipeline: List[str], vars_: Dict) -> Union[str, List[str]]:
     """
     Expands the variables in the pipeline.
@@ -101,7 +140,8 @@ def _expand_vars(pipeline: List[str], vars_: Dict) -> Union[str, List[str]]:
 def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[str]],
                      generator: Union[str, List[str]], generator_plugins: Dict[str, Plugin],
                      pipeline_format: str = PIPELINE_FORMAT_CMDLINE, dry_run: bool = False,
-                     prefix: str = False, logger: logging.Logger = None):
+                     prefix: str = False, dump_pipeline: str = None, dump_pipeline_format: str = PIPELINE_FORMAT_CMDLINE,
+                     logger: logging.Logger = None):
     """
     Executes the specified pipeline as many times as the generators produce variables.
 
@@ -120,6 +160,10 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
     :type dry_run: bool
     :param prefix: the prefix to use when in dry-run mode
     :type prefix: str
+    :param dump_pipeline: the optional file to dump the pipeline to
+    :type dump_pipeline: str
+    :param dump_pipeline_format: the format to save the pipeline in
+    :type dump_pipeline_format: str
     :param logger: the logger instance to use
     :type logger: logging.Logger
     """
@@ -142,6 +186,9 @@ def execute_pipeline(convert_prog: str, convert_func, pipeline: Union[str, List[
                 pipeline_exp[0] = prefix + pipeline_exp[0]
                 print(shlex.join(pipeline_exp))
         else:
+            if dump_pipeline is not None:
+                dump_pipeline_ = _expand_vars([dump_pipeline], vars_)[0]
+                save_pipeline(pipeline_exp, dump_pipeline_, pipeline_format=dump_pipeline_format, logger=logger)
             convert_func(pipeline_exp)
 
 
@@ -193,6 +240,8 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
                              + "simply joins all lines into a single command-line before splitting it into individual "
                              + "arguments for execution; any line starting with # is interpreted as commend and removed "
                              + "before joining.")
+    parser.add_argument("--exec_dump_pipeline", metavar="FILE", help="The file to dump the pipeline command in; supports variables."),
+    parser.add_argument("--exec_dump_pipeline_format", choices=PIPELINE_FORMATS, help="The format used for dumping the pipeline.", required=False, default=PIPELINE_FORMAT_CMDLINE),
     parser.add_argument("pipeline", help="The pipeline template with variables to expand and then execute; see '" + PARAM_EXEC_FORMAT + "' option.", nargs=argparse.REMAINDER)
     if logger is not None:
         add_logging_level(parser, short_opt=None, long_opt="--exec_logging_level")
@@ -225,6 +274,7 @@ def perform_pipeline_execution(env_var: Optional[str], args: List[str], prog: st
 
     execute_pipeline(convert_prog, convert_func, parsed.pipeline, parsed.exec_generator, generators_plugins,
                      pipeline_format=parsed.exec_format, dry_run=parsed.exec_dry_run, prefix=parsed.exec_prefix,
+                     dump_pipeline=parsed.exec_dump_pipeline, dump_pipeline_format=parsed.exec_dump_pipeline_format,
                      logger=logger)
 
     # custom post-execution hook?
