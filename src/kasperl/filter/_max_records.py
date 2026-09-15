@@ -12,12 +12,15 @@ class MaxRecords(BatchFilter):
     Suppresses records after the specified maximum number of records have passed through.
     """
 
-    def __init__(self, max_records: int = -1, logger_name: str = None, logging_level: str = LOGGING_WARNING):
+    def __init__(self, max_records: int = -1, stop_execution: bool = None,
+                 logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
         :param max_records: the maximum number of records to process <= 0 is unlimited
         :type max_records: int
+        :param stop_execution: whether to stop the execution once the maximum has been reached
+        :type stop_execution: bool
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -25,6 +28,7 @@ class MaxRecords(BatchFilter):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.max_records = max_records
+        self.stop_execution = stop_execution
         self._counter = 0
 
     def name(self) -> str:
@@ -72,6 +76,7 @@ class MaxRecords(BatchFilter):
         """
         parser = super()._create_argparser()
         parser.add_argument("-m", "--max_records", type=int, help="The maximum number number of records to let through before suppressing records.", default=-1, required=False)
+        parser.add_argument("-s", "--stop_execution", action="store_true", help="Whether to stop the pipeline execution once the maximum has been reached.")
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -83,12 +88,17 @@ class MaxRecords(BatchFilter):
         """
         super()._apply_args(ns)
         self.max_records = ns.max_records
+        self.stop_execution = ns.stop_execution
 
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
+        if self.max_records is None:
+            self.max_records = -1
+        if self.stop_execution is None:
+            self.stop_execution = False
         self._counter = 0
 
     def _do_process(self, data):
@@ -105,7 +115,9 @@ class MaxRecords(BatchFilter):
             if (self.max_records > 0) and (self._counter >= self.max_records):
                 if self._counter == self.max_records:
                     self.logger().info("Maximum # of records reached: %d" % self.max_records)
-                    self.session.stopped = True
+                    if self.stop_execution:
+                        self.logger().info("Flagging session as stopped.")
+                        self.session.stopped = True
                 item = None
 
             self._counter += 1
