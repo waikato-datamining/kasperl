@@ -11,13 +11,15 @@ from seppl.variables import InputBasedVariableSupporter
 
 class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
-    def __init__(self, data_formatter: str = None,
+    def __init__(self, data_formatter: str = None, header: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the reader.
 
         :param data_formatter: the data formatter to apply (plugin name + options)
         :type data_formatter: str
+        :param header: the string to output before the first item is output, ignored if None
+        :type header: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -25,7 +27,9 @@ class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.data_formatter = data_formatter
+        self.header = header
         self._data_formatter = None
+        self._first_item = None
 
     def name(self) -> str:
         """
@@ -54,6 +58,7 @@ class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         """
         parser = super()._create_argparser()
         parser.add_argument("-f", "--data_formatter", type=str, help="The data formatter to apply", required=False, default="df-simple-string")
+        parser.add_argument("-H", "--header", type=str, help="The header string to output before the first item is being output", required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -65,6 +70,7 @@ class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         """
         super()._apply_args(ns)
         self.data_formatter = ns.data_formatter
+        self.header = ns.header
 
     def accepts(self) -> List:
         """
@@ -94,6 +100,7 @@ class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
             self.data_formatter = "df-simple-string"
         if self._data_formatter is None:
             self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
+        self._first_item = True
 
     def write_stream(self, data):
         """
@@ -102,6 +109,10 @@ class ConsoleWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         :param data: the data to write (single record or iterable of records)
         """
         for item in make_list(data):
+            if self._first_item:
+                self._first_item = False
+                if self.header is not None:
+                    print(self.header)
             item_str = self._data_formatter.format_data(item)
             item_str = self.session.expand_variables(item_str)
             print(item_str)

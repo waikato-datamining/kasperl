@@ -13,7 +13,8 @@ from kasperl.api import make_list, StreamWriter, DataFormatter
 
 class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
-    def __init__(self, data_formatter: str = None, output_file: str = None, append: bool = None, delete_on_initialize: bool = None,
+    def __init__(self, data_formatter: str = None, output_file: str = None, append: bool = None,
+                 delete_on_initialize: bool = None, header: str = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the writer.
@@ -26,6 +27,8 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         :type append: bool
         :param delete_on_initialize: whether to delete an existing file when initializing the writer
         :type delete_on_initialize: bool
+        :param header: the string to output before the first item is output or when not appending, ignored if None
+        :type header: str
         :param logger_name: the name to use for the logger
         :type logger_name: str
         :param logging_level: the logging level to use
@@ -36,7 +39,9 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         self.output_file = output_file
         self.append = append
         self.delete_on_initialize = delete_on_initialize
+        self.header = header
         self._data_formatter = None
+        self._first_item = None
 
     def name(self) -> str:
         """
@@ -68,6 +73,7 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         parser.add_argument("-o", "--output_file", metavar="FILE", type=str, help="The file to write the data to; " + variable_list(obj=self), required=True)
         parser.add_argument("-a", "--append", action="store_true", help="Whether to append the file rather than overwrite it.")
         parser.add_argument("-d", "--delete_on_initialize", action="store_true", help="Whether to remove any existing file when initializing the writer.")
+        parser.add_argument("-H", "--header", type=str, help="The header string to output before the first item is being output or when not appending", required=False, default=None)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -82,6 +88,7 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         self.output_file = ns.output_file
         self.append = ns.append
         self.delete_on_initialize = ns.delete_on_initialize
+        self.header = ns.header
 
     @abc.abstractmethod
     def _available_data_formatters(self) -> Dict[str, Plugin]:
@@ -106,6 +113,7 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
         if os.path.exists(output_file) and os.path.isfile(output_file):
             self.logger().info("Deleting during initialization: %s" % output_file)
             os.remove(output_file)
+        self._first_item = True
 
     def accepts(self) -> List:
         """
@@ -133,9 +141,15 @@ class TextFileWriter(StreamWriter, InputBasedVariableSupporter, abc.ABC):
 
             if self.append:
                 with open(output_file, "a") as fp:
+                    if self._first_item:
+                        self._first_item = False
+                        if self.header is not None:
+                            print(self.header)
                     fp.write(item_str)
                     fp.write("\n")
             else:
                 with open(output_file, "w") as fp:
+                    if self.header is not None:
+                        print(self.header)
                     fp.write(item_str)
                     fp.write("\n")

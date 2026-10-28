@@ -9,6 +9,7 @@ Changelog
 - fixed handling of logger instance in `_find` method
 - `_find` method no longer adds directories to the list of files in recursive mode
 - `max-record` now has a `--stop_execution` option that flags the session as stopped once the maximum has been reached
+- `console` and `to-text-file` now allow outputting a header string before the first item is being output
 
 
 0.0.3 (2026-05-05)
