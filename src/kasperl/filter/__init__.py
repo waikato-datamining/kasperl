@@ -1,4 +1,5 @@
 from ._annotations_from_storage import AnnotationsFromStorage
+from ._annotations_to_metadata import AnnotationsToMetadata
 from ._annotations_to_storage import AnnotationsToStorage
 from ._attach_metadata import AttachMetaData
 from ._block import Block
