@@ -104,7 +104,7 @@ class Rename(BatchFilter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Renames files using a user-supplied format. As a final step, expands placeholders as well."
+        return "Renames files using a user-supplied format. As a final step, expands placeholders/variables as well."
 
     def accepts(self) -> List:
         """
