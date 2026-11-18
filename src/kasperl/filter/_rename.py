@@ -4,7 +4,8 @@ import os
 import re
 from typing import List, Any
 
-from seppl import AnyData
+from kasperl.filter import MetaData
+from seppl import AnyData, MetaDataHandler
 from seppl.io import BatchFilter
 from wai.logging import LOGGING_WARNING
 from kasperl.api import make_list, flatten_list, NameSupporter, SourceSupporter
@@ -19,6 +20,7 @@ RENAME_PH_OCCURRENCES = "{occurrences}"
 RENAME_PH_COUNT = "{count}"
 RENAME_PH_PDIR = "{[p]+dir}"
 RENAME_PH_PDIR_SUFFIX = "pdir}"
+RENAME_PH_META_PREFIX = "{meta:"
 
 RENAME_PLACEHOLDERS = [
     RENAME_PH_NAME,
@@ -104,7 +106,7 @@ class Rename(BatchFilter, abc.ABC):
         :return: the description
         :rtype: str
         """
-        return "Renames files using a user-supplied format. As a final step, expands placeholders/variables as well."
+        return "Renames files using a user-supplied format. As a final step, expands placeholders/variables and, if the data manages meta-data, meta-data placeholders of the format " + RENAME_PH_META_PREFIX + "METADATAKEY}."
 
     def accepts(self) -> List:
         """
@@ -265,6 +267,13 @@ class Rename(BatchFilter, abc.ABC):
 
             # expand any other variables
             name_new = self.session.expand_variables(name_new)
+
+            # expand meta-data
+            if (RENAME_PH_META_PREFIX in name_new) and isinstance(item, MetaDataHandler):
+                for k, v in item.get_metadata().items():
+                    name_new = name_new.replace(RENAME_PH_META_PREFIX + str(k) + "}", str(v))
+                    if RENAME_PH_META_PREFIX not in name_new:
+                        break
 
             self.logger().info("Result: %s -> %s" % (name, name_new))
 
