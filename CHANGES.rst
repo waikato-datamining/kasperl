@@ -12,6 +12,7 @@ Changelog
 - `console` and `to-text-file` now allow outputting a header string before the first item is being output
 - added the `annotations-to-metadata` filter for storing the annotations in the item's meta-data (may only be useful for some data types)
 - the `rename` filter can make use of meta-data values as well using the special `{meta:METADATAKEY}` placeholder format
+- fixed matching of regexps in `discard-by-name` filter, extended logging to output which are kept
 
 
 0.0.3 (2026-05-05)

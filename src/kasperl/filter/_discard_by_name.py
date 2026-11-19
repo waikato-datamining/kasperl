@@ -208,19 +208,22 @@ class DiscardByName(BatchFilter):
 
             # check against regexps
             if add:
+                matched = False
                 for regexp in self._regexps:
                     if regexp.fullmatch(image_name) is not None:
-                        if not self.invert:
-                            self.logger().info("Skipping based on regexp match: %s" % item.get_name())
-                            add = False
-                            break
-                    else:
-                        if self.invert:
-                            self.logger().info("Skipping based on no regexp match (invert): %s" % item.get_name())
-                            add = False
-                            break
+                        matched = True
+                        break
+                if matched:
+                    if not self.invert:
+                        self.logger().info("Skipping based on regexp match: %s" % item.get_name())
+                        add = False
+                else:
+                    if self.invert:
+                        self.logger().info("Skipping based on no regexp match (invert): %s" % item.get_name())
+                        add = False
 
             if add:
+                self.logger().info("Keeping: %s" % item.get_name())
                 result.append(item)
 
         return flatten_list(result)
