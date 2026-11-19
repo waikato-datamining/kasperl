@@ -150,7 +150,7 @@ class MetaData(BatchFilter):
 
             # key not present -> reject
             if self.field not in meta:
-                self.logger().info("Field '%s' not meta-data, discarded" % self.field)
+                self.logger().info("Field '%s' not in meta-data, discarded" % self.field)
                 self.discarded += 1
                 continue
 
