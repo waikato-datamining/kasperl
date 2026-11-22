@@ -13,6 +13,9 @@ Changelog
 - added the `annotations-to-metadata` filter for storing the annotations in the item's meta-data (may only be useful for some data types)
 - the `rename` filter can make use of meta-data values as well using the special `{meta:METADATAKEY}` placeholder format
 - fixed matching of regexps in `discard-by-name` filter, extended logging to output which are kept
+- the filters `block`, `sub-process`, `tee`, `trigger` and `stop` now can use a value generated with
+  the specified data-formatter instead of a meta-data value
+- added generic data-formatters: `df-name`, `df-meta-data`
 
 
 0.0.3 (2026-05-05)
