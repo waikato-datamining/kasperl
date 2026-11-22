@@ -7,7 +7,7 @@ from wai.logging import LOGGING_WARNING, LOGGING_INFO
 
 from kasperl.api import make_list, flatten_list, compare_values, \
     COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP, \
-    PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, load_pipeline
+    PIPELINE_FORMATS, PIPELINE_FORMAT_CMDLINE, load_pipeline, DataFormatter
 from seppl import split_args, Plugin, AnyData, MetaDataHandler, init_initializable, Initializable
 from seppl.io import BatchFilter, MultiFilter
 
@@ -18,7 +18,7 @@ class SubProcess(BatchFilter, abc.ABC):
     """
 
     def __init__(self, sub_flow: str = None, sub_flow_format: str = None,
-                 field: str = None, comparison: str = COMPARISON_EQUAL, value=None,
+                 field: str = None, data_formatter: str = None, comparison: str = COMPARISON_EQUAL, value=None,
                  log_execution_time: bool = None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
@@ -30,6 +30,8 @@ class SubProcess(BatchFilter, abc.ABC):
         :type sub_flow_format: str
         :param field: the name of the meta-data field to perform the comparison on
         :type field: str
+        :param data_formatter: the data formatter to apply to the data instead of using the meta-data field (plugin name + options)
+        :type data_formatter: str
         :param comparison: the comparison to perform
         :type comparison: str
         :param value: the value to compare with
@@ -44,11 +46,13 @@ class SubProcess(BatchFilter, abc.ABC):
         self.sub_flow = sub_flow
         self.sub_flow_format = sub_flow_format
         self.field = field
-        self.value = value
+        self.data_formatter = data_formatter
         self.comparison = comparison
+        self.value = value
         self.log_execution_time = log_execution_time
         self._sub_flow = None
         self._filter = None
+        self._data_formatter = None
 
     def name(self) -> str:
         """
@@ -67,8 +71,8 @@ class SubProcess(BatchFilter, abc.ABC):
         :rtype: str
         """
         return "Pushes the data through the filter(s) defined as its sub-flow. " \
-               "When supplying a meta-data field and a value, this can be turned into conditional processing. " \
-               "Performs the following comparison: METADATA_VALUE COMPARISON VALUE."
+               "When supplying a meta-data field/data-formatter and a value, this can be turned into conditional processing. " \
+               "Performs the following comparison: METADATA_VALUE/DATA_VALUE COMPARISON VALUE."
 
     def accepts(self) -> List:
         """
@@ -99,11 +103,22 @@ class SubProcess(BatchFilter, abc.ABC):
         parser.add_argument("-f", "--sub_flow", type=str, default=None, help="The subflow with filter(s) to execute.")
         parser.add_argument("-F", "--sub_flow_format", choices=PIPELINE_FORMATS, default=PIPELINE_FORMAT_CMDLINE, help="The format of the pipeline.")
         parser.add_argument("--field", type=str, help="The meta-data field to use in the comparison", default=None, required=False)
-        parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
+        parser.add_argument("--data_formatter", type=str, metavar="CMDLINE", help="The data formatter to apply to the data passing through for obtaining the value instead of the one from the meta-data (plugin name and options).", required=False, default=None)
+        parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data/data-formatter value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
-        parser.add_argument("--value", type=str, help="The value to use in the comparison", default=None, required=False)
+        parser.add_argument("--value", type=str, help="The user-supplied value to use in the comparison", default=None, required=False)
         parser.add_argument("--log_execution_time", action="store_true", help="Whether to log the time it takes to execute the sub-flow. Requires the " + LOGGING_INFO + " level to be set.", required=False)
         return parser
+
+    @abc.abstractmethod
+    def _available_data_formatters(self) -> Dict[str, Plugin]:
+        """
+        Returns the available data formatter plugins.
+
+        :return: the plugins (name -> plugin)
+        :rtype: dict
+        """
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def _available_filters(self) -> Dict[str, Plugin]:
@@ -143,8 +158,9 @@ class SubProcess(BatchFilter, abc.ABC):
         self.sub_flow = ns.sub_flow
         self.sub_flow_format = ns.sub_flow_format
         self.field = ns.field
-        self.value = ns.value
+        self.data_formatter = ns.data_formatter
         self.comparison = ns.comparison
+        self.value = ns.value
         self.log_execution_time = ns.log_execution_time
 
     def initialize(self):
@@ -174,8 +190,14 @@ class SubProcess(BatchFilter, abc.ABC):
             if isinstance(self._filter, Initializable):
                 init_initializable(self._filter, "filter")
 
-        if (self.field is not None) and (self.value is None):
+        if (self.field is not None) and (self.data_formatter is None):
+            raise Exception("Meta-data field and data-formatter cannot be specified at the same time!")
+        if ((self.field is not None) or (self.data_formatter is not None)) and (self.value is None):
             raise Exception("No value provided to compare with!")
+        if (self.field is None) and (self.data_formatter is None) and (self.value is not None):
+            raise Exception("Value provided but neither meta-data field nor data-formatter!")
+        if (self.data_formatter is not None) and (self._data_formatter is None):
+            self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
 
         if self.log_execution_time is None:
             self.log_execution_time = False
@@ -190,23 +212,31 @@ class SubProcess(BatchFilter, abc.ABC):
         time_start = time()
         result = []
         for item in make_list(data):
-            process = True
+            comp_result = True
 
             # evaluate expression?
-            meta = None
+            v1 = None
+            v2 = self.value
             if self.field is not None:
+                meta = None
                 if isinstance(item, MetaDataHandler):
                     if item.has_metadata():
                         meta = item.get_metadata()
-            if meta is not None:
-                v1 = meta[self.field]
-                v2 = self.value
-                process = compare_values(v1, self.comparison, v2)
-                comp = str(meta[self.field]) + " " + self.comparison + " " + str(self.value) + " = " + str(process)
-                self.logger().info("Field '%s': '%s'" % (self.field, comp))
+                if meta is not None:
+                    v1 = meta[self.field]
+            elif self._data_formatter is not None:
+                v1 = self._data_formatter.format_data(item)
+
+            if v1 is not None:
+                comp_result = compare_values(v1, self.comparison, v2)
+                comp = v1 + " " + self.comparison + " " + v2 + " = " + str(comp_result)
+                if self.field is not None:
+                    self.logger().info("Field '%s': '%s'" % (self.field, comp))
+                else:
+                    self.logger().info("Data formatter: '%s'" % comp)
 
             # filter data
-            if process and (self._filter is not None):
+            if comp_result and (self._filter is not None):
                 item = self._filter.process(item)
 
             result.append(item)

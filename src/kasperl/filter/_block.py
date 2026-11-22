@@ -1,12 +1,13 @@
+import abc
 import argparse
-from typing import List
+from typing import List, Dict
 
 from wai.logging import LOGGING_WARNING
 
-from seppl import AnyData, MetaDataHandler
+from seppl import AnyData, MetaDataHandler, Plugin
 from seppl.io import BatchFilter
 from kasperl.api import make_list, flatten_list, compare_values, \
-    COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP
+    COMPARISONS_EXT, COMPARISON_EQUAL, COMPARISON_CONTAINS, COMPARISON_MATCHES, COMPARISON_EXT_HELP, DataFormatter
 
 
 class Block(BatchFilter):
@@ -14,13 +15,15 @@ class Block(BatchFilter):
     Blocks data coming through when the expression evaluates to True.
     """
 
-    def __init__(self, field: str = None, comparison: str = COMPARISON_EQUAL, value=None,
+    def __init__(self, field: str = None, data_formatter: str = None, comparison: str = COMPARISON_EQUAL, value=None,
                  logger_name: str = None, logging_level: str = LOGGING_WARNING):
         """
         Initializes the filter.
 
         :param field: the name of the meta-data field to perform the comparison on
         :type field: str
+        :param data_formatter: the data formatter to apply to the data instead of using the meta-data field (plugin name + options)
+        :type data_formatter: str
         :param comparison: the comparison to perform
         :type comparison: str
         :param value: the value to compare with
@@ -31,8 +34,10 @@ class Block(BatchFilter):
         """
         super().__init__(logger_name=logger_name, logging_level=logging_level)
         self.field = field
+        self.data_formatter = data_formatter
         self.comparison = comparison
         self.value = value
+        self._data_formatter = None
 
     def name(self) -> str:
         """
@@ -51,8 +56,10 @@ class Block(BatchFilter):
         :rtype: str
         """
         return "Blocks data passing through if the expression evaluates to True. " \
-               "Lets everything pass if no meta-data field specified. " \
-               "Performs the following comparison: METADATA_VALUE COMPARISON VALUE."
+               "Evaluation can either be based on a meta-data field or on the data " \
+               "itself using the value derived from applying the specified data-formatter. " \
+               "Lets everything pass if neither meta-data field nor data-formater has been specified. " \
+               "Performs the following comparison: METADATA_VALUE/DATA_VALUE COMPARISON SUPPLIED_VALUE."
 
     def accepts(self) -> List:
         """
@@ -81,9 +88,10 @@ class Block(BatchFilter):
         """
         parser = super()._create_argparser()
         parser.add_argument("--field", type=str, help="The meta-data field to use in the comparison", default=None, required=False)
-        parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data value; " + COMPARISON_EXT_HELP
+        parser.add_argument("--data_formatter", type=str, metavar="CMDLINE", help="The data formatter to apply to the data passing through for obtaining the value instead of the one from the meta-data (plugin name and options).", required=False, default=None)
+        parser.add_argument("--comparison", choices=COMPARISONS_EXT, default=COMPARISON_EQUAL, help="How to compare the value with the meta-data/data-formatter value; " + COMPARISON_EXT_HELP
                             + "; in case of '" + COMPARISON_CONTAINS + "' and '" + COMPARISON_MATCHES + "' the supplied value represents the substring to find/regexp to search with", required=False)
-        parser.add_argument("--value", type=str, help="The value to use in the comparison", default=None, required=False)
+        parser.add_argument("--value", type=str, help="The user-supplied value to use in the comparison", default=None, required=False)
         return parser
 
     def _apply_args(self, ns: argparse.Namespace):
@@ -95,16 +103,33 @@ class Block(BatchFilter):
         """
         super()._apply_args(ns)
         self.field = ns.field
+        self.data_formatter = ns.data_formatter
         self.comparison = ns.comparison
         self.value = ns.value
+
+    @abc.abstractmethod
+    def _available_data_formatters(self) -> Dict[str, Plugin]:
+        """
+        Returns the available data formatter plugins.
+
+        :return: the plugins (name -> plugin)
+        :rtype: dict
+        """
+        raise NotImplementedError()
 
     def initialize(self):
         """
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if (self.field is not None) and (self.value is None):
+        if (self.field is not None) and (self.data_formatter is None):
+            raise Exception("Meta-data field and data-formatter cannot be specified at the same time!")
+        if ((self.field is not None) or (self.data_formatter is not None)) and (self.value is None):
             raise Exception("No value provided to compare with!")
+        if (self.field is None) and (self.data_formatter is None) and (self.value is not None):
+            raise Exception("Value provided but neither meta-data field nor data-formatter!")
+        if (self.data_formatter is not None) and (self._data_formatter is None):
+            self._data_formatter = DataFormatter.parse_dataformatter(self.data_formatter, self._available_data_formatters())
 
     def _do_process(self, data):
         """
@@ -116,17 +141,25 @@ class Block(BatchFilter):
         result = []
         for item in make_list(data):
             # evaluate expression?
-            meta = None
+            v1 = None
+            v2 = self.value
             if self.field is not None:
+                meta = None
                 if isinstance(item, MetaDataHandler):
                     if item.has_metadata():
                         meta = item.get_metadata()
-            if meta is not None:
-                v1 = meta[self.field]
-                v2 = self.value
+                if meta is not None:
+                    v1 = meta[self.field]
+            elif self._data_formatter is not None:
+                v1 = self._data_formatter.format_data(item)
+
+            if v1 is not None:
                 comp_result = compare_values(v1, self.comparison, v2)
-                comp = str(meta[self.field]) + " " + self.comparison + " " + str(self.value) + " = " + str(comp_result)
-                self.logger().info("Field '%s': '%s'" % (self.field, comp))
+                comp = v1 + " " + self.comparison + " " + v2 + " = " + str(comp_result)
+                if self.field is not None:
+                    self.logger().info("Field '%s': '%s'" % (self.field, comp))
+                else:
+                    self.logger().info("Data formatter: '%s'" % comp)
                 if comp_result:
                     self.logger().info("Blocked!")
                     continue
