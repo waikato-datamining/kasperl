@@ -122,7 +122,7 @@ class Block(BatchFilter):
         Initializes the processing, e.g., for opening files or databases.
         """
         super().initialize()
-        if (self.field is not None) and (self.data_formatter is None):
+        if (self.field is not None) and (self.data_formatter is not None):
             raise Exception("Meta-data field and data-formatter cannot be specified at the same time!")
         if ((self.field is not None) or (self.data_formatter is not None)) and (self.value is None):
             raise Exception("No value provided to compare with!")
