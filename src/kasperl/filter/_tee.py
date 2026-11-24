@@ -265,7 +265,7 @@ class Tee(BatchFilter, abc.ABC):
             # write data
             if (item is not None) and (self._writer is not None):
                 if isinstance(self._writer, BatchWriter):
-                    self._data_buffer.append(item)
+                    self._data_buffer.extend(make_list(item))
                 elif isinstance(self._writer, StreamWriter):
                     self._writer.write_stream(item)
                 else:

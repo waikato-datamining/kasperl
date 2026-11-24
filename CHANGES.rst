@@ -16,6 +16,7 @@ Changelog
 - the filters `block`, `sub-process`, `tee`, `trigger` and `stop` now can use a value generated with
   the specified data-formatter instead of a meta-data value
 - added generic data-formatters: `df-name`, `df-meta-data`
+- fixed handling of batch writers in the `tee` filter
 
 
 0.0.3 (2026-05-05)
